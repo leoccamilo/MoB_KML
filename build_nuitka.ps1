@@ -7,12 +7,13 @@ python -m nuitka `
   --enable-plugin=tk-inter `
   --enable-plugin=anti-bloat `
   --windows-console-mode=disable `
+  --windows-icon-from-ico=mob.ico `
   --assume-yes-for-downloads `
   --follow-imports `
   --remove-output `
   --lto=yes `
-  --experimental=use_pefile_fullrecursion `
-  --output-dir=dist_nuitka_protegido `
+  --include-data-files=mob.ico=mob.ico `
+  --output-dir=dist `
   --output-filename=CellKML.exe `
   --include-package=cell_kml_generator `
-  cell_kml_generator/main.py
+  run.py
