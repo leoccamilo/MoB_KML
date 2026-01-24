@@ -26,14 +26,18 @@ Ferramenta desktop para engenheiros de RF e telecomunicações que converte dado
 
 ## Instalacao
 
-### Requisitos
-- Python 3.8+
-- Windows 10/11
+### Para Usuarios
+Basta baixar o executavel da [pagina de releases](https://github.com/leoccamilo/MoB_KML/releases) e executar. Nao requer instalacao de Python ou dependencias.
 
-### Setup
+- **Requisitos**: Windows 10/11
+- **Download**: `CellKML.exe`
+
+### Para Desenvolvedores
+Se quiser modificar o codigo fonte:
+
 ```bash
 # Clonar repositorio
-git clone https://github.com/SEU_USUARIO/MoB_KML.git
+git clone https://github.com/leoccamilo/MoB_KML.git
 cd MoB_KML
 
 # Criar ambiente virtual
@@ -42,13 +46,15 @@ venv\Scripts\activate
 
 # Instalar dependencias
 pip install -r requirements.txt
+
+# Executar
+python run.py
 ```
 
-## Uso
-
-```bash
-# Executar aplicacao
-python run.py
+### Compilar Executavel
+```powershell
+# Requer Nuitka instalado
+.\build_nuitka.ps1
 ```
 
 ### Fluxo de trabalho

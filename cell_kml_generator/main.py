@@ -1,11 +1,23 @@
 import json
 import os
+import sys
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser
 
 import pandas as pd
 
 from .config import APP_NAME, PREVIEW_ROWS, DEFAULT_LABEL_COLOR, BAND_RADIUS_M, BAND_BEAMWIDTH
+
+
+def get_resource_path(filename):
+    """Get path to resource, works for dev and compiled with Nuitka."""
+    if getattr(sys, 'frozen', False):
+        # Running as compiled
+        base_path = os.path.dirname(sys.executable)
+    else:
+        # Running in development
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, filename)
 from .file_handler import load_file
 from .column_mapper import auto_map_columns, validate_mapping
 from .label_configurator import LabelConfig
@@ -25,6 +37,11 @@ class App(tk.Tk):
         self.title(APP_NAME)
         self.geometry("1200x800")
         self.minsize(1000, 700)
+
+        # Set window icon
+        icon_path = get_resource_path("mob.ico")
+        if os.path.exists(icon_path):
+            self.iconbitmap(icon_path)
 
         # Catppuccin Mocha colors
         self.bg_color = "#1e1e2e"
