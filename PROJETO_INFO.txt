@@ -1,0 +1,114 @@
+================================================================================
+                           MoB_KML - INFORMACOES DO PROJETO
+================================================================================
+Data: 2026-01-23
+Status: Compilado e funcionando
+
+================================================================================
+DESCRICAO
+================================================================================
+Aplicacao desktop em Python/Tkinter para gerar arquivos KML de sites celulares
+(LTE/5G) a partir de arquivos de coordenadas. Focada em planejamento de redes RF.
+
+================================================================================
+ESTRUTURA DO PROJETO
+================================================================================
+C:\MoB_KML\
+|-- run.py                      # Entry point para compilacao
+|-- requirements.txt            # Dependencias: pandas, openpyxl, rapidfuzz
+|-- venv\                       # Ambiente virtual Python 3.9
+|-- dist\
+|   |-- MoB_KML.exe             # Executavel standalone (29MB)
+|-- cell_kml_generator\         # Modulo principal
+    |-- __init__.py
+    |-- main.py                 # GUI principal com 6 abas
+    |-- config.py               # Configuracoes (cores, raios por banda, EARFCN)
+    |-- file_handler.py         # Leitura TXT/CSV/XLSX com deteccao de delimitador
+    |-- column_mapper.py        # Mapeamento automatico com fuzzy matching
+    |-- label_configurator.py   # Configuracao de labels visiveis
+    |-- earfcn_utils.py         # Conversao EARFCN -> Frequencia/Banda
+    |-- geometry.py             # Calculo de petalas (haversine)
+    |-- kml_generator.py        # Geracao do arquivo KML
+    |-- validators.py           # Validacoes de dados
+
+================================================================================
+FUNCIONALIDADES IMPLEMENTADAS
+================================================================================
+[x] Interface com 6 abas:
+    - Importacao de Dados
+    - Mapeamento de Colunas
+    - Configuracao de Petalas
+    - Parametros Adicionais
+    - Labels e Visualizacao
+    - Geracao KML
+
+[x] Importacao de arquivos TXT, CSV, XLSX
+[x] Deteccao automatica de delimitador
+[x] Mapeamento automatico de colunas com fuzzy matching (rapidfuzz)
+[x] Validacao de dados (lat/lon, azimute, EARFCN)
+[x] Calculo de raio baseado em EARFCN (bandas LTE/5G)
+[x] Geracao de petalas (setores) com geometria correta
+[x] Cores por banda de frequencia
+[x] Labels configuraveis
+[x] Exportacao de relatorio TXT
+[x] Salvar/Carregar perfis de configuracao (JSON)
+
+================================================================================
+BANDAS SUPORTADAS (EARFCN)
+================================================================================
+Band 28 (700MHz):  EARFCN 9210-9659   -> raio 800m
+Band 5 (850MHz):   EARFCN 2410-2649   -> raio 700m
+Band 8 (900MHz):   EARFCN 3450-3799   -> raio 650m
+Band 3 (1800MHz):  EARFCN 1200-1949   -> raio 400m
+Band 1 (2100MHz):  EARFCN 0-599       -> raio 350m
+Band 7 (2600MHz):  EARFCN 2750-3449   -> raio 300m
+Band 38 (2600MHz TDD): EARFCN 37750-38249 -> raio 300m
+Band 40 (2300MHz TDD): EARFCN 38650-39649 -> raio 320m
+Band 41 (2500MHz TDD): EARFCN 39650-41589 -> raio 310m
+Band 42 (3500MHz): EARFCN 41590-43589 -> raio 220m
+Band 43 (3700MHz): EARFCN 43590-45589 -> raio 200m
+Band 78 (3500MHz 5G NR): EARFCN 620000-680000 -> raio 220m
+
+================================================================================
+COMPILACAO COM NUITKA
+================================================================================
+Ambiente virtual: C:\MoB_KML\venv
+Dependencias instaladas no venv:
+  - pandas 2.3.3
+  - openpyxl 3.1.5
+  - rapidfuzz 3.13.0
+  - nuitka 2.8.10
+
+Comando de compilacao:
+  cd "C:/MoB_KML"
+  venv/Scripts/python -m nuitka --standalone --onefile ^
+    --enable-plugin=tk-inter ^
+    --windows-console-mode=disable ^
+    --assume-yes-for-downloads ^
+    --follow-imports ^
+    --lto=yes ^
+    --output-dir=dist ^
+    --output-filename=MoB_KML.exe ^
+    --include-package=cell_kml_generator ^
+    --onefile-tempdir-spec="{CACHE_DIR}/MoB_KML" ^
+    run.py
+
+IMPORTANTE:
+  - Usar --onefile-tempdir-spec para evitar problemas com pastas temporarias
+  - O executavel eh standalone e roda em qualquer Windows sem Python
+
+================================================================================
+ARQUIVO DE REQUISITOS (Instrucoes.txt)
+================================================================================
+O arquivo C:\MoB_KML\Instrucoes.txt contem todos os requisitos detalhados
+da aplicacao. Consultar para verificar funcionalidades pendentes ou melhorias.
+
+================================================================================
+PROXIMOS PASSOS SUGERIDOS
+================================================================================
+- Testar com arquivos reais de dados de celulas
+- Verificar se todas as funcionalidades do Instrucoes.txt estao atendidas
+- Adicionar icone ao executavel (--windows-icon-from-ico=icon.ico)
+- Testar em outras maquinas Windows
+
+================================================================================

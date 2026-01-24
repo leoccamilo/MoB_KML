@@ -1,0 +1,37 @@
+# Virtual environment
+venv/
+.venv/
+
+# Build artifacts
+build/
+dist/
+dist_nuitka_protegido/
+nuitka_cache/
+clcache/
+*.spec
+*.exe
+nuitka-crash-report.xml
+
+# Cache
+__pycache__/
+*.pyc
+*.pyo
+.claude/
+
+# Output files
+Output/
+Perfil/
+
+# Test files
+*.xlsx
+*.xls
+*.png
+*.kml
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
