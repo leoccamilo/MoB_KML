@@ -81,7 +81,8 @@ def generate_kml(df, mapping, label_config, extra_fields, scale, band_scale_over
 
         folder = folders[folder_name]
 
-        site_label = build_label(row, mapping.get("site_name", ""), label_config.template)
+        site_field = label_config.site_field or mapping.get("site_name", "")
+        site_label = build_label(row, site_field, label_config.template)
         if site_label:
             pm_site = ET.SubElement(folder, "Placemark")
             ET.SubElement(pm_site, "name").text = site_label
@@ -92,9 +93,9 @@ def generate_kml(df, mapping, label_config, extra_fields, scale, band_scale_over
         if label_config.hide_cell_label:
             cell_label = ""
         else:
-            field = mapping.get("cell_name", "")
+            field = label_config.cell_field or mapping.get("cell_name", "")
             if label_config.use_site_for_cell:
-                field = mapping.get("site_name", "")
+                field = site_field
             cell_label = build_label(row, field, "")
 
         az = row.get(mapping.get("azimuth", ""), "0")
@@ -126,13 +127,13 @@ def generate_kml(df, mapping, label_config, extra_fields, scale, band_scale_over
         lon_val = row.get(mapping.get("longitude", ""), "")
 
         lines = [
-            "Site = %s" % site_val,
-            "Sector = %s" % cell_val,
-            "Longitude = %s" % lon_val,
-            "Latitude = %s" % lat_val,
-            "Azimuth = %s" % az,
-            "EARFCN = %s" % earfcn,
-            "Band = %s" % (band_info["label"] if band_info else "Unknown"),
+            "Site: %s" % site_val,
+            "Sector: %s" % cell_val,
+            "Longitude: %s" % lon_val,
+            "Latitude: %s" % lat_val,
+            "Azimuth: %s" % az,
+            "EARFCN: %s" % earfcn,
+            "Band: %s" % (band_info["label"] if band_info else "Unknown"),
         ]
         for field in extra_fields:
             lines.append("%s = %s" % (field, row.get(field, "")))

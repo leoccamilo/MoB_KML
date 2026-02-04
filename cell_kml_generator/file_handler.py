@@ -19,10 +19,16 @@ def detect_delimiter(sample_text):
 def load_file(path):
     _, ext = os.path.splitext(path.lower())
     if ext in [".csv", ".txt"]:
-        with open(path, "r", encoding="utf-8", errors="ignore") as handle:
+        with open(path, "r", encoding="latin-1") as handle:
             sample = "".join([handle.readline() for _ in range(5)])
         delimiter = detect_delimiter(sample)
-        df = pd.read_csv(path, sep=delimiter, dtype=str, keep_default_na=False)
+        df = pd.read_csv(
+            path,
+            sep=delimiter,
+            dtype=str,
+            keep_default_na=False,
+            encoding="latin-1",
+        )
         return df, {"delimiter": delimiter, "format": ext.lstrip(".")}
     if ext in [".xlsx", ".xls"]:
         df = pd.read_excel(path, dtype=str)

@@ -75,15 +75,25 @@ def auto_map_columns(df):
     if lon:
         used.add(lon)
 
-    # Site name - check for eNB/gNB columns first (exact match), then fuzzy match
+    # Site name - prioritize SiteID, then eNB/gNB (exact match), then fuzzy match
     site = None
     for col in columns:
         col_lower = col.lower()
-        if col_lower in ["enb", "gnb", "enodeb", "gnodeb", "enb_id", "gnb_id"]:
+        if col_lower.replace("_", "").replace(" ", "").replace("-", "") in ["siteid"]:
             site = col
             break
     if not site:
-        site = _find_best(columns, ["site_name", "sitename", "site", "node", "bts"], exclude=used)
+        for col in columns:
+            col_lower = col.lower()
+            if col_lower in ["enb", "gnb", "enodeb", "gnodeb", "enb_id", "gnb_id"]:
+                site = col
+                break
+    if not site:
+        site = _find_best(
+            columns,
+            ["siteid", "site_id", "site id", "site_name", "sitename", "site", "node", "bts"],
+            exclude=used,
+        )
     if site:
         used.add(site)
 

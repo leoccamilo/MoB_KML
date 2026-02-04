@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoB KML Web</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div>
+        <h1>MoB KML</h1>
+        <p>Web interface for KML generation and map visualization</p>
+        <div class="header-credit">Developed by Leonardo Camilo</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-outline-light" id="btn-measure" title="Measure distance">📏 Measure</button>
+        <button class="btn btn-outline-light" id="btn-auto-refresh" title="Toggle live map updates">🔄 Live</button>
+        <div class="header-search">
+          <select class="form-select form-select-sm" id="search-mode">
+            <option value="site">Site/Cell</option>
+            <option value="city">City</option>
+          </select>
+          <div class="search-box">
+            <input class="form-control form-control-sm" id="search-input" placeholder="Search..." />
+            <div id="search-results" class="search-results"></div>
+          </div>
+        </div>
+        <button class="btn btn-outline-light" id="btn-refresh-map">Refresh Map</button>
+        <button class="btn btn-light" id="btn-generate-kml">Download KML</button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="sidebar">
+        <ul class="nav nav-pills flex-column" id="appTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-import" data-bs-toggle="pill" data-bs-target="#pane-import" type="button" role="tab">Import Data</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-mapping" data-bs-toggle="pill" data-bs-target="#pane-mapping" type="button" role="tab">Column Mapping</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-petals" data-bs-toggle="pill" data-bs-target="#pane-petals" type="button" role="tab">Petal Config</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-extra" data-bs-toggle="pill" data-bs-target="#pane-extra" type="button" role="tab">Additional Params</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-labels" data-bs-toggle="pill" data-bs-target="#pane-labels" type="button" role="tab">Labels & View</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-output" data-bs-toggle="pill" data-bs-target="#pane-output" type="button" role="tab">Generate Output</button>
+          </li>
+        </ul>
+
+        <div class="sidebar-footer">
+          <div class="small">Source: <span id="source-name">-</span></div>
+          <div class="small">Rows: <span id="row-count">0</span></div>
+          <div class="small">Status: <span id="status-text">Idle</span></div>
+        </div>
+      </div>
+
+      <div class="content" id="content-wrapper">
+        <div class="content-panel" id="config-panel">
+          <div class="tab-content" id="appTabsContent">
+          <div class="tab-pane fade show active" id="pane-import" role="tabpanel">
+            <div class="panel">
+              <h2>Import Data</h2>
+              <p class="text-muted">Upload TXT/CSV/XLSX files. Delimiter is auto-detected for TXT.</p>
+              <input class="form-control" type="file" id="file-input" />
+              <button class="btn btn-primary mt-3" id="btn-upload">Upload</button>
+
+              <div class="filter-block mt-4">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h5>Filters</h5>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" id="btn-clear-filters">Clear</button>
+                    <button class="btn btn-outline-primary btn-sm" id="btn-apply-filters">Apply</button>
+                  </div>
+                </div>
+                <div id="filter-fields" class="row g-3 mt-1"></div>
+              </div>
+
+              <div class="preview-block mt-4">
+                <h5>Preview</h5>
+                <div class="table-responsive">
+                  <table class="table table-sm" id="preview-table"></table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="pane-mapping" role="tabpanel">
+            <div class="panel">
+              <div class="panel-header">
+                <h2>Column Mapping</h2>
+                <div>
+                  <button class="btn btn-outline-primary" id="btn-auto-map">Auto Map</button>
+                  <button class="btn btn-outline-secondary" id="btn-validate-map">Validate</button>
+                </div>
+              </div>
+
+              <div class="row g-3 mt-1" id="mapping-fields"></div>
+
+              <div class="issues-block mt-4">
+                <h5>Validation Issues</h5>
+                <ul id="mapping-issues" class="list-group"></ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="pane-petals" role="tabpanel">
+            <div class="panel">
+              <h2>Petal Configuration</h2>
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label">Global Scale</label>
+                  <input type="range" class="form-range" id="scale-range" min="0.5" max="2" step="0.1" value="0.5" />
+                  <div class="small">Scale: <span id="scale-value">0.5</span>x</div>
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <h5>Band Overrides (Radius / Beamwidth)</h5>
+                <div class="table-responsive">
+                  <table class="table table-sm" id="band-table"></table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="pane-extra" role="tabpanel">
+            <div class="panel">
+              <h2>Additional Parameters</h2>
+              <p class="text-muted">Select columns to include in petal descriptions.</p>
+              <div class="row" id="extra-fields"></div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="pane-labels" role="tabpanel">
+            <div class="panel">
+              <h2>Labels & Visualization</h2>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Site Label Field</label>
+                  <select class="form-select" id="site-label-field"></select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Cell Label Field</label>
+                  <select class="form-select" id="cell-label-field"></select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Template (optional)</label>
+                  <input class="form-control" id="label-template" placeholder="{SiteName} - {Operator}" />
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Text Scale</label>
+                  <input class="form-control" id="label-scale" type="number" step="0.1" value="1.0" />
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Text Color</label>
+                  <input class="form-control" id="label-color" type="color" value="#ffffff" />
+                </div>
+              </div>
+
+              <div class="row g-3 mt-2">
+                <div class="col-md-3 form-check">
+                  <input class="form-check-input" type="checkbox" id="label-show" checked />
+                  <label class="form-check-label" for="label-show">Show site labels</label>
+                </div>
+                <div class="col-md-3 form-check">
+                  <input class="form-check-input" type="checkbox" id="label-shadow" />
+                  <label class="form-check-label" for="label-shadow">Text shadow</label>
+                </div>
+                <div class="col-md-3 form-check">
+                  <input class="form-check-input" type="checkbox" id="label-use-site" />
+                  <label class="form-check-label" for="label-use-site">Use site for cell label</label>
+                </div>
+                <div class="col-md-3 form-check">
+                  <input class="form-check-input" type="checkbox" id="label-hide-cell" />
+                  <label class="form-check-label" for="label-hide-cell">Hide cell labels</label>
+                </div>
+              </div>
+
+              <div class="row g-3 mt-2">
+                <div class="col-md-4">
+                  <label class="form-label">Label Position</label>
+                  <select class="form-select" id="label-position">
+                    <option value="center">Center</option>
+                    <option value="above">Above</option>
+                    <option value="below">Below</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="pane-output" role="tabpanel">
+            <div class="panel">
+              <h2>Generate Output</h2>
+              <p class="text-muted">Generate KML or export the report. Profiles let you reuse mappings and settings.</p>
+              <div class="d-flex gap-2">
+                <button class="btn btn-success" id="btn-download-kml">Download KML</button>
+                <button class="btn btn-outline-secondary" id="btn-export-report">Export Report</button>
+              </div>
+
+              <div class="mt-4">
+                <h5>Profiles</h5>
+                <div class="input-group mb-3">
+                  <input class="form-control" id="profile-name" placeholder="Profile name" />
+                  <button class="btn btn-outline-primary" id="btn-save-profile">Save Profile</button>
+                </div>
+                <div class="input-group">
+                  <select class="form-select" id="profile-list"></select>
+                  <button class="btn btn-outline-secondary" id="btn-load-profile">Load Profile</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+
+        <div class="resize-handle" id="resize-handle"></div>
+
+        <div class="content-panel" id="map-panel">
+          <div class="map-panel">
+                        <div class="card" id="measure-card" style="display: none;">
+              <div class="card-header">
+                Measure Distance
+                <button class="btn btn-sm btn-outline-dark" onclick="clearMeasure()">Clear</button>
+              </div>
+              <div class="card-body">
+                <div class="measure-point" id="measure-point1">
+                  <span class="point-label text-primary">1st point:</span>
+                  <span class="text-muted">Click on map...</span>
+                </div>
+                <div class="measure-point" id="measure-point2">
+                  <span class="point-label text-danger">2nd point:</span>
+                  <span class="text-muted">-</span>
+                </div>
+                <div class="measure-result" id="measure-result" style="display: none;">
+                  <div class="text-center text-muted small">Distance</div>
+                  <div class="distance-value">0 m</div>
+                </div>
+              </div>
+            </div><div id="map"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
+
+
