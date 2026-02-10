@@ -518,6 +518,159 @@ body {
   cursor: crosshair !important;
 }
 
+/* ===== CUSTOM MARKER TOOL ===== */
+#btn-add-marker {
+  transition: all 0.2s ease;
+}
+
+#btn-add-marker.active {
+  background: #22d3ee;
+  color: #000;
+  border-color: #22d3ee;
+  font-weight: 600;
+}
+
+.add-marker-mode {
+  cursor: crosshair !important;
+}
+
+.add-marker-mode .leaflet-interactive {
+  cursor: crosshair !important;
+}
+
+#custom-marker-card {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 340px;
+  z-index: 1000;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+#custom-marker-card .card-header {
+  background-color: #22d3ee;
+  color: #000;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#custom-marker-card .card-body {
+  padding: 12px;
+  color: #333;
+}
+
+#custom-marker-card .form-label {
+  color: #555;
+  font-weight: 600;
+}
+
+#custom-marker-card .form-control,
+#custom-marker-card .form-select {
+  background: #fff;
+  color: #333;
+  border-color: #ced4da;
+}
+
+#custom-marker-card .form-control:focus,
+#custom-marker-card .form-select:focus {
+  border-color: #22d3ee;
+  box-shadow: 0 0 0 0.2rem rgba(34, 211, 238, 0.25);
+}
+
+.sector-row {
+  background: #e9ecef;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ced4da;
+  margin-bottom: 6px;
+}
+
+.sector-row label {
+  font-size: 0.75rem;
+  color: #555;
+  margin-bottom: 2px;
+}
+
+#marker-list-card {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 280px;
+  z-index: 1000;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+#marker-list-card .card-header {
+  background-color: #22d3ee;
+  color: #000;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.marker-list-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.marker-list-item:last-child {
+  margin-bottom: 0;
+}
+
+.marker-list-item .ml-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.marker-list-item .ml-name {
+  flex: 1;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marker-list-item .btn {
+  padding: 0 4px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.distance-label-custom {
+  background: rgba(34, 211, 238, 0.9) !important;
+  color: #000 !important;
+  border: 1px solid #0891b2 !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-align: center;
+  white-space: nowrap;
+}
+
 @media (max-width: 1100px) {
   #config-panel {
     flex: 0 0 40%;

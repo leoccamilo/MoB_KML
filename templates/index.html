@@ -19,6 +19,7 @@
       </div>
       <div class="header-actions">
         <button class="btn btn-outline-light" id="btn-measure" title="Measure distance">📏 Measure</button>
+        <button class="btn btn-outline-light" id="btn-add-marker" title="Add custom marker on map">📍 Marker</button>
         <button class="btn btn-outline-light" id="btn-auto-refresh" title="Toggle live map updates">🔄 Live</button>
         <div class="header-search">
           <select class="form-select form-select-sm" id="search-mode">
@@ -248,7 +249,62 @@
                   <div class="distance-value">0 m</div>
                 </div>
               </div>
-            </div><div id="map"></div>
+            </div>
+
+            <div class="card" id="custom-marker-card" style="display: none;">
+              <div class="card-header">
+                <span id="marker-card-title">Custom Marker</span>
+                <button class="btn btn-sm btn-outline-dark" onclick="cancelAddMarker()">Cancel</button>
+              </div>
+              <div class="card-body">
+                <div id="marker-help" class="text-muted small mb-2">Click on map to place marker...</div>
+                <div id="marker-form" style="display: none;">
+                  <div class="mb-2">
+                    <label class="form-label small mb-1">Name</label>
+                    <input type="text" class="form-control form-control-sm" id="marker-name" placeholder="Marker name" />
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label small mb-1">Coordinates</label>
+                    <div class="row g-1">
+                      <div class="col-6"><input type="number" step="any" class="form-control form-control-sm" id="marker-lat" placeholder="Latitude" /></div>
+                      <div class="col-6"><input type="number" step="any" class="form-control form-control-sm" id="marker-lon" placeholder="Longitude" /></div>
+                    </div>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label small mb-1">Type</label>
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                      <input type="radio" class="btn-check" name="marker-type" id="type-pin" value="pin" checked />
+                      <label class="btn btn-outline-info" for="type-pin">Pin</label>
+                      <input type="radio" class="btn-check" name="marker-type" id="type-site" value="site" />
+                      <label class="btn btn-outline-info" for="type-site">Site (with petals)</label>
+                    </div>
+                  </div>
+                  <div id="site-config" style="display: none;">
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Sectors</label>
+                      <input type="number" class="form-control form-control-sm" id="marker-sector-count" min="1" max="6" value="3" />
+                    </div>
+                    <div id="marker-sector-list"></div>
+                  </div>
+                  <div class="d-flex gap-2 mt-3">
+                    <button class="btn btn-sm btn-success flex-fill" id="btn-save-marker">Save Marker</button>
+                    <button class="btn btn-sm btn-outline-secondary" id="btn-cancel-marker">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" id="marker-list-card" style="display: none;">
+              <div class="card-header">
+                Custom Markers <span id="marker-count" class="badge bg-dark ms-1">0</span>
+                <button class="btn btn-sm btn-outline-dark" onclick="clearAllCustomMarkers()">Clear All</button>
+              </div>
+              <div class="card-body p-2">
+                <div id="marker-list"></div>
+              </div>
+            </div>
+
+            <div id="map"></div>
           </div>
         </div>
       </div>

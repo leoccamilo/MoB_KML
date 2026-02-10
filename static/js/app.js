@@ -16,6 +16,13 @@ let measureMarkers = [];
 let measureLine = null;
 let measureLayerGroup = null;
 
+// Custom marker state
+let addMarkerMode = false;
+let customMarkers = [];
+let customMarkerIdCounter = 0;
+let customMarkerLayer = null;
+let tempMarkerPreview = null; // preview marker before saving
+
 const state = {
   columns: [],
   mapping: {
@@ -340,9 +347,10 @@ function initMap() {
   baseLayers = { OpenStreetMap: osm, Satellite: satellite };
   overlayControl = L.control.layers(baseLayers, {}).addTo(map);
   labelLayer = L.layerGroup().addTo(map);
-  
-  // Add measure tool click handler
-  map.on("click", onMapClickMeasure);
+  customMarkerLayer = L.layerGroup().addTo(map);
+
+  // Unified map click handler
+  map.on("click", onMapClick);
 }
 
 function syncMapSize() {
@@ -411,6 +419,9 @@ async function refreshMap() {
       if (measureMode) {
         L.DomEvent.stopPropagation(e);
         addMeasurePoint(cell.lat, cell.lon, cell.site_name || cell.cell_name);
+      } else if (addMarkerMode) {
+        L.DomEvent.stopPropagation(e);
+        onMapClickAddMarker({ latlng: { lat: cell.lat, lng: cell.lon } }, cell.site_name || cell.cell_name);
       }
     });
       polygon.addTo(bandLayers[cell.band_label]);
@@ -693,6 +704,10 @@ function toggleMeasureMode() {
   const mapContainer = document.getElementById("map");
 
   if (measureMode) {
+    // Disable marker mode if active
+    if (addMarkerMode) {
+      cancelAddMarker();
+    }
     btn.classList.add("active");
     card.style.display = "block";
     mapContainer.classList.add("measure-mode");
@@ -844,9 +859,12 @@ function formatDistance(meters) {
   }
 }
 
-function onMapClickMeasure(e) {
-  if (!measureMode) return;
-  addMeasurePoint(e.latlng.lat, e.latlng.lng);
+function onMapClick(e) {
+  if (addMarkerMode) {
+    onMapClickAddMarker(e);
+  } else if (measureMode) {
+    addMeasurePoint(e.latlng.lat, e.latlng.lng);
+  }
 }
 
 function wireEvents() {
@@ -856,6 +874,7 @@ function wireEvents() {
   document.getElementById("btn-refresh-map").addEventListener("click", refreshMap);
   document.getElementById("btn-auto-refresh").addEventListener("click", toggleAutoRefresh);
   document.getElementById("btn-measure").addEventListener("click", toggleMeasureMode);
+  document.getElementById("btn-add-marker").addEventListener("click", toggleAddMarkerMode);
   document.getElementById("btn-apply-filters").addEventListener("click", applyFilters);
   document.getElementById("btn-clear-filters").addEventListener("click", clearFilters);
   document.getElementById("btn-generate-kml").addEventListener("click", () => downloadFile("/api/generate-kml", "cells.kml"));
@@ -899,11 +918,504 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadProfiles();
   initResizeHandle();
   setupSearch();
+  initCustomMarkerForm();
   syncMapSize();
   window.addEventListener("resize", syncMapSize);
   window.addEventListener("load", syncMapSize);
   setStatus("Ready");
 });
+
+// ===== CUSTOM MARKER TOOL =====
+
+function toDeg(rad) {
+  return rad * (180 / Math.PI);
+}
+
+function destinationPoint(lat, lon, bearingDeg, distanceM) {
+  const R = 6371000;
+  const latRad = toRad(lat);
+  const lonRad = toRad(lon);
+  const bearing = toRad(bearingDeg);
+  const dr = distanceM / R;
+
+  const destLat = Math.asin(
+    Math.sin(latRad) * Math.cos(dr) +
+    Math.cos(latRad) * Math.sin(dr) * Math.cos(bearing)
+  );
+  const destLon = lonRad + Math.atan2(
+    Math.sin(bearing) * Math.sin(dr) * Math.cos(latRad),
+    Math.cos(dr) - Math.sin(latRad) * Math.sin(destLat)
+  );
+
+  return [toDeg(destLat), toDeg(destLon)];
+}
+
+function generatePetalJS(lat, lon, azimuth, beamwidth, radiusM, points) {
+  points = points || 24;
+  const half = beamwidth / 2.0;
+  const start = azimuth - half;
+  const end = azimuth + half;
+  const step = Math.max(1, Math.floor(beamwidth / Math.max(1, points)));
+
+  const coords = [[lat, lon]]; // Leaflet [lat, lon]
+  let angle = start;
+  while (angle <= end) {
+    const [dlat, dlon] = destinationPoint(lat, lon, angle, radiusM);
+    coords.push([dlat, dlon]);
+    angle += step;
+  }
+  const [eLat, eLon] = destinationPoint(lat, lon, end, radiusM);
+  coords.push([eLat, eLon]);
+  coords.push([lat, lon]);
+  return coords;
+}
+
+function toggleAddMarkerMode() {
+  addMarkerMode = !addMarkerMode;
+  const btn = document.getElementById("btn-add-marker");
+  const card = document.getElementById("custom-marker-card");
+  const mapContainer = document.getElementById("map");
+
+  if (addMarkerMode) {
+    // Disable measure mode if active
+    if (measureMode) {
+      clearMeasure();
+    }
+    btn.classList.add("active");
+    card.style.display = "block";
+    mapContainer.classList.add("add-marker-mode");
+    resetMarkerForm();
+  } else {
+    btn.classList.remove("active");
+    card.style.display = "none";
+    mapContainer.classList.remove("add-marker-mode");
+    removeTempMarkerPreview();
+  }
+}
+
+function cancelAddMarker() {
+  addMarkerMode = false;
+  window._editingMarkerId = null;
+  const btn = document.getElementById("btn-add-marker");
+  const card = document.getElementById("custom-marker-card");
+  const mapContainer = document.getElementById("map");
+
+  btn.classList.remove("active");
+  card.style.display = "none";
+  mapContainer.classList.remove("add-marker-mode");
+  removeTempMarkerPreview();
+}
+
+function resetMarkerForm() {
+  document.getElementById("marker-help").style.display = "block";
+  document.getElementById("marker-form").style.display = "none";
+  document.getElementById("marker-name").value = "";
+  document.getElementById("marker-lat").value = "";
+  document.getElementById("marker-lon").value = "";
+  document.getElementById("type-pin").checked = true;
+  document.getElementById("site-config").style.display = "none";
+  document.getElementById("marker-sector-list").innerHTML = "";
+  document.getElementById("marker-card-title").textContent = "Custom Marker";
+  document.getElementById("btn-save-marker").textContent = "Save Marker";
+  window._editingMarkerId = null;
+}
+
+function removeTempMarkerPreview() {
+  if (tempMarkerPreview) {
+    customMarkerLayer.removeLayer(tempMarkerPreview);
+    tempMarkerPreview = null;
+  }
+}
+
+function onMapClickAddMarker(e, refName) {
+  if (!addMarkerMode) return;
+
+  const lat = e.latlng.lat;
+  const lon = e.latlng.lng;
+
+  // Show preview marker
+  removeTempMarkerPreview();
+  tempMarkerPreview = L.circleMarker([lat, lon], {
+    radius: 8,
+    fillColor: "#22d3ee",
+    color: "#fff",
+    weight: 2,
+    fillOpacity: 0.8,
+  }).addTo(customMarkerLayer);
+
+  // Populate form
+  document.getElementById("marker-help").style.display = "none";
+  document.getElementById("marker-form").style.display = "block";
+  document.getElementById("marker-lat").value = lat.toFixed(6);
+  document.getElementById("marker-lon").value = lon.toFixed(6);
+  if (refName && !document.getElementById("marker-name").value) {
+    document.getElementById("marker-name").value = "";
+  }
+  document.getElementById("marker-name").focus();
+}
+
+function buildSectorRows() {
+  const count = Math.min(6, Math.max(1, parseInt(document.getElementById("marker-sector-count").value) || 3));
+  const container = document.getElementById("marker-sector-list");
+  container.innerHTML = "";
+
+  const bandOptions = state.bands.map(b =>
+    `<option value="${b.key}">${b.label}</option>`
+  ).join("");
+
+  for (let i = 0; i < count; i++) {
+    const defaultAz = Math.round(i * (360 / count));
+    const row = document.createElement("div");
+    row.className = "sector-row";
+    row.innerHTML = `
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="fw-bold" style="font-size:0.8rem;color:#333;">Sector ${i + 1}</span>
+      </div>
+      <div class="row g-1">
+        <div class="col-5">
+          <label>Azimuth</label>
+          <input type="number" class="form-control form-control-sm sector-az" min="0" max="359" value="${defaultAz}" />
+        </div>
+        <div class="col-7">
+          <label>Band</label>
+          <select class="form-select form-select-sm sector-band">${bandOptions}</select>
+        </div>
+      </div>
+    `;
+    container.appendChild(row);
+  }
+}
+
+function initCustomMarkerForm() {
+  // Type toggle
+  document.querySelectorAll('input[name="marker-type"]').forEach(radio => {
+    radio.addEventListener("change", (e) => {
+      const siteConfig = document.getElementById("site-config");
+      if (e.target.value === "site") {
+        siteConfig.style.display = "block";
+        buildSectorRows();
+      } else {
+        siteConfig.style.display = "none";
+      }
+    });
+  });
+
+  // Sector count change
+  document.getElementById("marker-sector-count").addEventListener("change", buildSectorRows);
+
+  // Save button
+  document.getElementById("btn-save-marker").addEventListener("click", saveCustomMarker);
+
+  // Cancel button
+  document.getElementById("btn-cancel-marker").addEventListener("click", () => {
+    removeTempMarkerPreview();
+    resetMarkerForm();
+  });
+}
+
+function saveCustomMarker() {
+  const name = document.getElementById("marker-name").value.trim() || "Marker " + (customMarkerIdCounter + 1);
+  const lat = parseFloat(document.getElementById("marker-lat").value);
+  const lon = parseFloat(document.getElementById("marker-lon").value);
+  const type = document.querySelector('input[name="marker-type"]:checked').value;
+
+  if (isNaN(lat) || isNaN(lon)) return;
+
+  removeTempMarkerPreview();
+
+  let sectors = [];
+  if (type === "site") {
+    const globalScale = parseFloat(document.getElementById("scale-range").value) || 0.5;
+    const azInputs = document.querySelectorAll(".sector-az");
+    const bandSelects = document.querySelectorAll(".sector-band");
+    for (let i = 0; i < azInputs.length; i++) {
+      const azimuth = parseFloat(azInputs[i].value) || 0;
+      const bandKey = bandSelects[i].value;
+      const band = state.bands.find(b => b.key === bandKey);
+      // Use override if set, otherwise band default, apply global scale
+      const radiusOverride = document.querySelector(`[data-radius="${bandKey}"]`);
+      const beamOverride = document.querySelector(`[data-beam="${bandKey}"]`);
+      const baseRadius = (radiusOverride && radiusOverride.value) ? parseFloat(radiusOverride.value) : (band ? band.default_radius : 300);
+      const beamwidth = (beamOverride && beamOverride.value) ? parseFloat(beamOverride.value) : (band ? band.default_beamwidth : 65);
+      sectors.push({
+        azimuth,
+        bandKey,
+        bandLabel: band ? band.label : bandKey,
+        beamwidth,
+        radius: Math.round(baseRadius * globalScale),
+        color: band ? band.color : "#888888",
+      });
+    }
+  }
+
+  // If editing, delete old marker first
+  if (window._editingMarkerId) {
+    deleteCustomMarker(window._editingMarkerId);
+    window._editingMarkerId = null;
+  }
+
+  createCustomMarker(lat, lon, name, type, sectors);
+
+  // Exit marker mode after save
+  cancelAddMarker();
+}
+
+function createCustomMarker(lat, lon, name, type, sectors) {
+  const id = "cm-" + (++customMarkerIdCounter);
+
+  const markerData = {
+    id, type, name, lat, lon, sectors,
+    marker: null,
+    petals: [],
+  };
+
+  if (type === "pin") {
+    const icon = L.divIcon({
+      className: "custom-pin-marker",
+      html: `<div style="width:20px;height:20px;background:#ef4444;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.5);cursor:pointer;"></div>`,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
+    });
+    markerData.marker = L.marker([lat, lon], { icon, draggable: true, interactive: true }).addTo(customMarkerLayer);
+  } else {
+    markerData.marker = L.circleMarker([lat, lon], {
+      radius: 8,
+      fillColor: "#a855f7",
+      color: "#fff",
+      weight: 2,
+      fillOpacity: 0.9,
+      interactive: true,
+    }).addTo(customMarkerLayer);
+
+    // Make circleMarker draggable via custom drag behavior
+    enableCircleMarkerDrag(markerData);
+
+    // Generate petals
+    sectors.forEach(sector => {
+      const coords = generatePetalJS(lat, lon, sector.azimuth, sector.beamwidth, sector.radius);
+      const petal = L.polygon(coords, {
+        color: sector.color,
+        fillColor: sector.color,
+        fillOpacity: 0.35,
+        weight: 2,
+        dashArray: "6, 4",
+      }).addTo(customMarkerLayer);
+      petal.bindTooltip(`${name} - ${sector.bandLabel}`, { direction: "top", sticky: true });
+      // Click on petal opens the site marker popup
+      petal.on("click", (e) => {
+        L.DomEvent.stopPropagation(e);
+        markerData.marker.openPopup();
+      });
+      markerData.petals.push(petal);
+    });
+  }
+
+  // Popup - bind to marker
+  markerData.marker.bindPopup(() => buildMarkerPopup(markerData), { maxWidth: 280 });
+
+  if (type === "pin") {
+    // Pin markers have built-in drag
+    markerData.marker.on("dragend", () => {
+      const pos = markerData.marker.getLatLng();
+      updateMarkerPosition(markerData, pos.lat, pos.lng);
+    });
+  }
+
+  customMarkers.push(markerData);
+  updateMarkerListUI();
+  return markerData;
+}
+
+function enableCircleMarkerDrag(markerData) {
+  let dragging = false;
+  let hasMoved = false;
+  let startLatLng = null;
+  const cm = markerData.marker;
+
+  cm.on("mousedown", (e) => {
+    startLatLng = e.latlng;
+    hasMoved = false;
+    dragging = true;
+    map.dragging.disable();
+    L.DomEvent.preventDefault(e.originalEvent);
+  });
+
+  const onMouseMove = (e) => {
+    if (!dragging) return;
+    hasMoved = true;
+    cm.setLatLng(e.latlng);
+    markerData.petals.forEach((petal, idx) => {
+      const sector = markerData.sectors[idx];
+      const coords = generatePetalJS(e.latlng.lat, e.latlng.lng, sector.azimuth, sector.beamwidth, sector.radius);
+      petal.setLatLngs(coords);
+    });
+  };
+
+  const onMouseUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    map.dragging.enable();
+    if (hasMoved) {
+      const pos = cm.getLatLng();
+      updateMarkerPosition(markerData, pos.lat, pos.lng);
+    } else {
+      // No movement = click, open popup
+      cm.openPopup();
+    }
+  };
+
+  map.on("mousemove", onMouseMove);
+  map.on("mouseup", onMouseUp);
+}
+
+function updateMarkerPosition(markerData, newLat, newLon) {
+  markerData.lat = newLat;
+  markerData.lon = newLon;
+
+  // Update petals for site type
+  if (markerData.type === "site") {
+    markerData.petals.forEach((petal, idx) => {
+      const sector = markerData.sectors[idx];
+      const coords = generatePetalJS(newLat, newLon, sector.azimuth, sector.beamwidth, sector.radius);
+      petal.setLatLngs(coords);
+    });
+  }
+}
+
+function buildMarkerPopup(markerData) {
+  const typeLabel = markerData.type === "pin" ? "Pin" : "Simulated Site";
+  let html = `<div style="min-width:200px;">
+    <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">${markerData.name}</div>
+    <div style="font-size:0.8rem;color:#666;margin-bottom:6px;">${typeLabel} &middot; ${markerData.lat.toFixed(5)}, ${markerData.lon.toFixed(5)}</div>`;
+
+  if (markerData.type === "site" && markerData.sectors.length > 0) {
+    html += `<div style="font-weight:600;font-size:0.85rem;margin-bottom:2px;">Sectors:</div>`;
+    markerData.sectors.forEach((s, i) => {
+      html += `<div style="font-size:0.8rem;">${i + 1}. Az: ${s.azimuth}&deg; &mdash; ${s.bandLabel}</div>`;
+    });
+  }
+
+  html += `<div style="margin-top:8px;display:flex;gap:6px;">
+    <button class="btn btn-sm btn-outline-primary" onclick="editCustomMarker('${markerData.id}')">Edit</button>
+    <button class="btn btn-sm btn-outline-danger" onclick="deleteCustomMarker('${markerData.id}')">Delete</button>
+  </div></div>`;
+  return html;
+}
+
+function editCustomMarker(id) {
+  const m = customMarkers.find(m => m.id === id);
+  if (!m) return;
+
+  // Close popup
+  m.marker.closePopup();
+
+  // Activate marker mode and show card
+  addMarkerMode = true;
+  const btn = document.getElementById("btn-add-marker");
+  const card = document.getElementById("custom-marker-card");
+  const mapContainer = document.getElementById("map");
+  btn.classList.add("active");
+  card.style.display = "block";
+  mapContainer.classList.add("add-marker-mode");
+
+  // Show form, hide help
+  document.getElementById("marker-help").style.display = "none";
+  document.getElementById("marker-form").style.display = "block";
+
+  // Fill in current values
+  document.getElementById("marker-name").value = m.name;
+  document.getElementById("marker-lat").value = m.lat.toFixed(6);
+  document.getElementById("marker-lon").value = m.lon.toFixed(6);
+
+  // Set type radio
+  if (m.type === "site") {
+    document.getElementById("type-site").checked = true;
+    document.getElementById("site-config").style.display = "block";
+    document.getElementById("marker-sector-count").value = m.sectors.length;
+    buildSectorRows();
+    // Fill sector values
+    const azInputs = document.querySelectorAll(".sector-az");
+    const bandSelects = document.querySelectorAll(".sector-band");
+    m.sectors.forEach((s, i) => {
+      if (azInputs[i]) azInputs[i].value = s.azimuth;
+      if (bandSelects[i]) bandSelects[i].value = s.bandKey;
+    });
+  } else {
+    document.getElementById("type-pin").checked = true;
+    document.getElementById("site-config").style.display = "none";
+  }
+
+  // Show preview marker at current position
+  removeTempMarkerPreview();
+  tempMarkerPreview = L.circleMarker([m.lat, m.lon], {
+    radius: 8,
+    fillColor: "#22d3ee",
+    color: "#fff",
+    weight: 2,
+    fillOpacity: 0.8,
+  }).addTo(customMarkerLayer);
+
+  // Store edit context: save will delete old and create new
+  window._editingMarkerId = id;
+
+  // Update card title
+  document.getElementById("marker-card-title").textContent = "Edit Marker";
+  document.getElementById("btn-save-marker").textContent = "Update Marker";
+
+  // Zoom to marker
+  map.setView([m.lat, m.lon], map.getZoom());
+}
+
+function deleteCustomMarker(id) {
+  const idx = customMarkers.findIndex(m => m.id === id);
+  if (idx === -1) return;
+
+  const m = customMarkers[idx];
+  if (m.marker) customMarkerLayer.removeLayer(m.marker);
+  m.petals.forEach(p => customMarkerLayer.removeLayer(p));
+
+  customMarkers.splice(idx, 1);
+  updateMarkerListUI();
+}
+
+function clearAllCustomMarkers() {
+  [...customMarkers].forEach(m => deleteCustomMarker(m.id));
+}
+
+function updateMarkerListUI() {
+  const card = document.getElementById("marker-list-card");
+  const list = document.getElementById("marker-list");
+  const count = document.getElementById("marker-count");
+
+  count.textContent = customMarkers.length;
+
+  if (customMarkers.length === 0) {
+    card.style.display = "none";
+    return;
+  }
+
+  card.style.display = "block";
+  list.innerHTML = "";
+
+  customMarkers.forEach(m => {
+    const item = document.createElement("div");
+    item.className = "marker-list-item";
+    item.innerHTML = `
+      <span class="ml-icon">${m.type === "pin" ? "\uD83D\uDCCD" : "\uD83D\uDCE1"}</span>
+      <span class="ml-name" title="${m.name}">${m.name}</span>
+      <button class="btn btn-sm btn-outline-secondary" onclick="zoomToCustomMarker('${m.id}')" title="Zoom">🔍</button>
+      <button class="btn btn-sm btn-outline-danger" onclick="deleteCustomMarker('${m.id}')" title="Delete">&times;</button>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function zoomToCustomMarker(id) {
+  const m = customMarkers.find(m => m.id === id);
+  if (!m) return;
+  map.setView([m.lat, m.lon], 15);
+  if (m.marker) m.marker.openPopup();
+}
 
 function initResizeHandle() {
   const resizeHandle = document.getElementById("resize-handle");
