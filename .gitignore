@@ -5,12 +5,26 @@ venv/
 # Build artifacts
 build/
 dist/
+dist_debug/
+dist_v3/
 dist_nuitka_protegido/
 nuitka_cache/
+nuitka_cache_v3/
 clcache/
 *.spec
 *.exe
 nuitka-crash-report.xml
+launcher.py
+
+# Logs and temp build files
+*.log
+build_output.log
+build_temp.ps1
+output_log.txt
+test_error*.txt
+test_output.txt
+error.log
+exe_error.log
 
 # Cache
 __pycache__/
@@ -21,12 +35,17 @@ __pycache__/
 # Output files
 Output/
 Perfil/
+profile/
 
-# Test files
+# Test/data files
 *.xlsx
 *.xls
 *.png
 *.kml
+*.csv
+
+# Legacy docs
+PROJETO_INFO.txt
 
 # IDE
 .vscode/
