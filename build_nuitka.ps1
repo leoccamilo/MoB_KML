@@ -180,6 +180,22 @@ if ($LASTEXITCODE -eq 0) {
         Write-Host "Could not create desktop shortcut (may require admin)" -ForegroundColor Yellow
     }
 
+    # Create Start Menu shortcut (makes app searchable in Windows Search)
+    Write-Host "`nCreating Start Menu shortcut..." -ForegroundColor Yellow
+    try {
+        $startMenuPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\MoB_KML.lnk"
+        $shell2 = New-Object -COM WScript.Shell
+        $startShortcut = $shell2.CreateShortcut($startMenuPath)
+        $startShortcut.TargetPath = $targetPath
+        $startShortcut.WorkingDirectory = (Resolve-Path ".\dist").Path
+        $startShortcut.IconLocation = (Resolve-Path ".\mob.ico").Path
+        $startShortcut.Description = "MoB KML Generator - Web Edition"
+        $startShortcut.Save()
+        Write-Host "Start Menu shortcut created: MoB_KML (searchable via Windows Search)" -ForegroundColor Green
+    } catch {
+        Write-Host "Could not create Start Menu shortcut: $_" -ForegroundColor Yellow
+    }
+
     # Clean up launcher script
     Write-Host "`nCleaning up temporary files..." -ForegroundColor Yellow
     Remove-Item ".\launcher.py" -Force -ErrorAction SilentlyContinue
