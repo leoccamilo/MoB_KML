@@ -1,34 +1,34 @@
 # MoB_KML - Cell KML Generator (Web Edition)
 
-Ferramenta web para engenheiros de RF que converte dados de inventario celular (LTE/5G)
-em visualizacao interativa no mapa e exportacao KML, sem necessidade de Google Earth.
+Web tool for RF engineers that converts cellular inventory data (LTE/5G)
+into interactive map visualization and KML export, without needing Google Earth.
 
 **Stack**: FastAPI + Leaflet.js + Pandas
-**Status**: Produção - Compilado como .exe standalone
-**Ultima atualizacao**: 03/02/2026
+**Status**: Production - Compiled as standalone .exe
+**Last updated**: 02/10/2026
 
 ---
 
-## Funcionalidades
+## Features
 
-- **Interface web moderna** com mapa interativo (Leaflet.js) - substitui Google Earth
-- **Importacao de dados**: CSV, TXT (deteccao automatica de delimitador) e Excel (.xlsx)
-- **Mapeamento automatico de colunas** com fuzzy matching (rapidfuzz)
-- **Visualizacao em tempo real** (Live Mode) - mapa atualiza a cada mudanca de config
-- **Petalas direcionais** por setor com abertura e raio configuraveis por banda
-- **Cores por banda** de frequencia (700MHz a 3700MHz, LTE e 5G NR)
-- **Paineis redimensionaveis** - arraste a barra entre config e mapa
-- **Ferramenta de medicao** - clique em dois pontos para medir distancia
-- **Busca de sites/cidades** na barra de pesquisa do mapa
-- **Filtros regionais** - filtre por UF, DDD, Regional, Municipio
-- **Perfis de configuracao** - salve e carregue configs em JSON
-- **Exportacao KML** (opcional) e relatorio TXT
-- **Dois base maps**: OpenStreetMap e Esri Satellite
+- **Modern web interface** with interactive map (Leaflet.js) - replaces Google Earth
+- **Data import**: CSV, TXT (automatic delimiter detection) and Excel (.xlsx)
+- **Automatic column mapping** with fuzzy matching (rapidfuzz)
+- **Real-time visualization** (Live Mode) - map updates on every config change
+- **Directional petals** per sector with configurable beamwidth and radius per band
+- **Colors by frequency band** (700MHz to 3700MHz, LTE and 5G NR)
+- **Resizable panels** - drag the bar between config and map
+- **Measurement tool** - click two points to measure distance
+- **Site/city search** in the map search bar
+- **Regional filters** - filter by State, Area Code, Regional, City
+- **Configuration profiles** - save and load configs as JSON
+- **KML export** (optional) and TXT report
+- **Two base maps**: OpenStreetMap and Esri Satellite
 
-## Bandas Suportadas
+## Supported Bands
 
-| Banda | Frequencia | EARFCN Range | Raio Padrao | Beamwidth |
-|-------|------------|--------------|-------------|-----------|
+| Band | Frequency | EARFCN Range | Default Radius | Beamwidth |
+|------|-----------|--------------|----------------|-----------|
 | 28 | 700 MHz | 9210-9659 | 500m | 90 |
 | 5 | 850 MHz | 2410-2649 | 700m | 85 |
 | 8 | 900 MHz | 3450-3799 | 650m | 80 |
@@ -44,157 +44,157 @@ em visualizacao interativa no mapa e exportacao KML, sem necessidade de Google E
 
 ---
 
-## Executar (Desenvolvimento)
+## Run (Development)
 
 ```bash
-# Criar e ativar ambiente virtual
+# Create and activate virtual environment
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 
-# Instalar dependencias
+# Install dependencies
 python -m pip install -r requirements.txt
 
-# Iniciar servidor
+# Start server
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Acesse: http://127.0.0.1:8000
+Access: http://127.0.0.1:8000
 
-## Executar (Executavel Compilado)
+## Run (Compiled Executable)
 
 ```
 .\dist\MoB_KML.exe
 ```
 
-O exe inicia o servidor FastAPI e abre o navegador automaticamente.
-Nao requer Python instalado. Funciona em qualquer Windows 10/11 64-bit.
+The exe starts the FastAPI server and opens the browser automatically.
+No Python installation required. Works on any Windows 10/11 64-bit.
 
 ---
 
-## Compilar o Executavel (.exe)
+## Build the Executable (.exe)
 
-### Pre-requisitos
+### Prerequisites
 - Python 3.9+
-- Visual Studio Build Tools (compilador C++)
-- 8GB RAM (16GB recomendado)
-- 10GB disco livre
+- Visual Studio Build Tools (C++ compiler)
+- 8GB RAM (16GB recommended)
+- 10GB free disk space
 
-### Compilar
+### Build
 ```powershell
-# Abra PowerShell e navegue ao projeto
+# Open PowerShell and navigate to the project
 cd C:\MoB_KML_bkp\MoB_KML_Ingles
 
-# Execute o script de build
+# Run the build script
 .\build_nuitka.ps1
 ```
 
-O script automaticamente:
-1. Ativa o venv e instala dependencias
-2. Cria o `launcher.py` (entry point do exe)
-3. Compila com Nuitka (~10-20 min)
-4. Gera `.\dist\MoB_KML.exe` (~36MB)
-5. Cria atalho na desktop
+The script automatically:
+1. Activates the venv and installs dependencies
+2. Creates `launcher.py` (exe entry point)
+3. Compiles with Nuitka (~10-20 min)
+4. Generates `.\dist\MoB_KML.exe` (~36MB)
+5. Creates a desktop shortcut
 
-### Notas importantes sobre o build
-- O `launcher.py` importa `app.main` **diretamente** (nao como string) para que o Nuitka detecte a dependencia
-- O pacote `app/` precisa ter `__init__.py`
-- Use `python -m pip` (nao `pip` sozinho) para garantir instalacao no venv correto
-- O console esta visivel (`--windows-console-mode=force`) para debug. Apos confirmar que tudo funciona, mude para `--windows-console-mode=disable` no `build_nuitka.ps1`
-- Se houver erro no exe, ele grava em `mob_kml_error.log` ao lado do executavel
-
----
-
-## Fluxo de Uso
-
-1. **Import Data** - Carregue CSV/TXT/XLSX
-2. **Column Mapping** - Clique "Auto Map" (mapa aparece automaticamente com Live Mode)
-3. **Petal Config** - Ajuste escala global e raios/beamwidth por banda
-4. **Labels & View** - Configure rotulos dos sites
-5. **Filters** - Filtre por UF, DDD, Regional, Municipio (se disponivel nos dados)
-6. **Generate Output** - Download KML (opcional) ou Export Report
+### Important build notes
+- `launcher.py` imports `app.main` **directly** (not as a string) so that Nuitka detects the dependency
+- The `app/` package must have `__init__.py`
+- Use `python -m pip` (not `pip` alone) to ensure installation in the correct venv
+- Console is visible (`--windows-console-mode=force`) for debugging. After confirming everything works, change to `--windows-console-mode=disable` in `build_nuitka.ps1`
+- If the exe errors, it writes to `mob_kml_error.log` next to the executable
 
 ---
 
-## Estrutura do Projeto
+## Usage Flow
+
+1. **Import Data** - Load CSV/TXT/XLSX
+2. **Column Mapping** - Click "Auto Map" (map appears automatically with Live Mode)
+3. **Petal Config** - Adjust global scale and radius/beamwidth per band
+4. **Labels & View** - Configure site labels
+5. **Filters** - Filter by State, Area Code, Regional, City (if available in the data)
+6. **Generate Output** - Download KML (optional) or Export Report
+
+---
+
+## Project Structure
 
 ```
 MoB_KML_Ingles/
-|-- app/                           # Interface web (FastAPI)
+|-- app/                           # Web interface (FastAPI)
 |   |-- __init__.py
-|   |-- main.py                    # Servidor FastAPI, endpoints REST
+|   |-- main.py                    # FastAPI server, REST endpoints
 |
-|-- cell_kml_generator/            # Modulo core de processamento
+|-- cell_kml_generator/            # Core processing module
 |   |-- __init__.py
-|   |-- config.py                  # Constantes: cores, raios, beamwidths, EARFCN ranges
-|   |-- file_handler.py            # Leitura de CSV/TXT/XLSX com auto-deteccao de delimitador
-|   |-- column_mapper.py           # Mapeamento automatico de colunas (fuzzy matching)
-|   |-- validators.py              # Validacao de dados (coords, azimute, EARFCN)
-|   |-- earfcn_utils.py            # Conversao EARFCN -> Banda, calculo de raio/beamwidth
-|   |-- geometry.py                # Calculo geodesico (haversine, petalas, bearing)
-|   |-- kml_generator.py           # Geracao de arquivo KML
-|   |-- label_configurator.py      # Configuracao de labels (LabelConfig dataclass)
-|   |-- main.py                    # GUI Tkinter (legado, nao usado na web edition)
+|   |-- config.py                  # Constants: colors, radii, beamwidths, EARFCN ranges
+|   |-- file_handler.py            # CSV/TXT/XLSX reader with auto delimiter detection
+|   |-- column_mapper.py           # Automatic column mapping (fuzzy matching)
+|   |-- validators.py              # Data validation (coords, azimuth, EARFCN)
+|   |-- earfcn_utils.py            # EARFCN -> Band conversion, radius/beamwidth calculation
+|   |-- geometry.py                # Geodesic calculations (haversine, petals, bearing)
+|   |-- kml_generator.py           # KML file generation
+|   |-- label_configurator.py      # Label configuration (LabelConfig dataclass)
+|   |-- main.py                    # Legacy Tkinter GUI (not used in web edition)
 |
 |-- templates/
-|   |-- index.html                 # UI principal (Jinja2 template)
+|   |-- index.html                 # Main UI (Jinja2 template)
 |
 |-- static/
-|   |-- css/style.css              # Estilos (tema escuro, layout flexbox)
-|   |-- js/app.js                  # Logica frontend (Leaflet, resize, search, measure)
+|   |-- css/style.css              # Styles (dark theme, flexbox layout)
+|   |-- js/app.js                  # Frontend logic (Leaflet, resize, search, measure)
 |
-|-- profiles/                      # Perfis de configuracao salvos (.json)
-|-- venv/                          # Ambiente virtual Python
-|-- dist/                          # Executavel compilado
+|-- profiles/                      # Saved configuration profiles (.json)
+|-- venv/                          # Python virtual environment
+|-- dist/                          # Compiled executable
 |   |-- MoB_KML.exe
 |
-|-- run.py                         # Entry point legado (Tkinter GUI)
-|-- launcher.py                    # Entry point para o exe (FastAPI + browser)
-|-- build_nuitka.ps1               # Script de compilacao Nuitka
-|-- requirements.txt               # Dependencias Python
-|-- mob.ico                        # Icone da aplicacao
-|-- exemplo_teste.csv              # Arquivo de teste (13 setores, 6 sites)
-|-- PROJETO_INFO.txt               # Documentacao tecnica detalhada
+|-- run.py                         # Legacy entry point (Tkinter GUI)
+|-- launcher.py                    # Exe entry point (FastAPI + browser)
+|-- build_nuitka.ps1               # Nuitka build script
+|-- requirements.txt               # Python dependencies
+|-- mob.ico                        # Application icon
+|-- example_test.csv               # Test file (13 sectors, 6 sites)
+|-- PROJECT_INFO.txt               # Detailed technical documentation
 ```
 
-## Dependencias (requirements.txt)
+## Dependencies (requirements.txt)
 
-| Pacote | Uso |
-|--------|-----|
-| pandas | Manipulacao de dados tabulares |
-| openpyxl | Leitura de arquivos Excel (.xlsx) |
-| rapidfuzz | Fuzzy matching para mapeamento de colunas |
-| fastapi | Framework web (API REST) |
-| uvicorn | Servidor ASGI |
-| jinja2 | Templates HTML |
-| python-multipart | Upload de arquivos |
+| Package | Usage |
+|---------|-------|
+| pandas | Tabular data manipulation |
+| openpyxl | Excel file reading (.xlsx) |
+| rapidfuzz | Fuzzy matching for column mapping |
+| fastapi | Web framework (REST API) |
+| uvicorn | ASGI server |
+| jinja2 | HTML templates |
+| python-multipart | File upload support |
 
 ## API Endpoints
 
-| Metodo | Rota | Descricao |
-|--------|------|-----------|
-| GET | `/` | Pagina principal (index.html) |
-| GET | `/api/bands` | Lista bandas com cores, raios e beamwidths |
-| POST | `/api/upload` | Upload de arquivo CSV/TXT/XLSX |
-| POST | `/api/auto-map` | Mapeamento automatico de colunas |
-| POST | `/api/validate-mapping` | Validacao do mapeamento |
-| POST | `/api/set-config` | Aplica configuracao (mapping, labels, escala) |
-| GET | `/api/map-data` | Dados do mapa (celulas, sites, labels) |
-| POST | `/api/generate-kml` | Gera e baixa arquivo KML |
-| POST | `/api/export-report` | Gera e baixa relatorio TXT |
-| POST | `/api/calculate-distance` | Calcula distancia entre dois pontos |
-| GET | `/api/search?q=&mode=` | Busca sites ou cidades |
-| POST | `/api/filter-values` | Valores unicos de coluna para filtros |
-| POST | `/api/apply-filters` | Aplica filtros regionais |
-| GET | `/api/profiles` | Lista perfis salvos |
-| POST | `/api/save-profile` | Salva perfil de configuracao |
-| POST | `/api/load-profile` | Carrega perfil de configuracao |
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/` | Main page (index.html) |
+| GET | `/api/bands` | List bands with colors, radii and beamwidths |
+| POST | `/api/upload` | Upload CSV/TXT/XLSX file |
+| POST | `/api/auto-map` | Automatic column mapping |
+| POST | `/api/validate-mapping` | Mapping validation |
+| POST | `/api/set-config` | Apply configuration (mapping, labels, scale) |
+| GET | `/api/map-data` | Map data (cells, sites, labels) |
+| POST | `/api/generate-kml` | Generate and download KML file |
+| POST | `/api/export-report` | Generate and download TXT report |
+| POST | `/api/calculate-distance` | Calculate distance between two points |
+| GET | `/api/search?q=&mode=` | Search sites or cities |
+| POST | `/api/filter-values` | Unique column values for filters |
+| POST | `/api/apply-filters` | Apply regional filters |
+| GET | `/api/profiles` | List saved profiles |
+| POST | `/api/save-profile` | Save configuration profile |
+| POST | `/api/load-profile` | Load configuration profile |
 
 ---
 
-## Licenca
+## License
 
 MIT License
 
-## Autor
+## Author
 
-Desenvolvido para auxiliar engenheiros de RF na visualizacao de dados de rede celular.
+Developed to assist RF engineers in visualizing cellular network data.

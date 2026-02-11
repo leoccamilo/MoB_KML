@@ -161,10 +161,10 @@ async function buildFilterFields(filterColumns) {
   state.filterSelections = {};
 
   const labels = {
-    uf: "UF / Estado",
-    cn: "CN / DDD",
+    uf: "UF / State",
+    cn: "CN / Area Code",
     regional: "Regional",
-    municipio: "Município / Cidade",
+    municipio: "City / Municipality",
   };
 
   for (const [key, column] of Object.entries(filterColumns || {})) {
@@ -868,6 +868,15 @@ function onMapClick(e) {
 }
 
 function wireEvents() {
+  // Custom file input: Browse button triggers hidden file input
+  document.getElementById("btn-browse").addEventListener("click", () => {
+    document.getElementById("file-input").click();
+  });
+  document.getElementById("file-input").addEventListener("change", (e) => {
+    const name = e.target.files.length > 0 ? e.target.files[0].name : "No file selected";
+    document.getElementById("file-name-display").textContent = name;
+  });
+
   document.getElementById("btn-upload").addEventListener("click", uploadFile);
   document.getElementById("btn-auto-map").addEventListener("click", autoMap);
   document.getElementById("btn-validate-map").addEventListener("click", validateMapping);

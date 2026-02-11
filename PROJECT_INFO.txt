@@ -1,0 +1,373 @@
+================================================================================
+                    MoB_KML - PROJECT TECHNICAL INFORMATION
+================================================================================
+Date: 02/10/2026
+Version: 2.0 (Web Edition)
+Status: Compiled and working as standalone .exe
+
+================================================================================
+DESCRIPTION
+================================================================================
+Web application (FastAPI + Leaflet.js) for RF engineers that converts cellular
+inventory data (LTE/5G) into interactive map visualization and KML export.
+Completely replaces the need for Google Earth.
+
+The previous version was a desktop app with Tkinter (module cell_kml_generator/main.py,
+executed via run.py). The current version is web-based, served by FastAPI (app/main.py),
+compiled as a standalone executable with Nuitka.
+
+================================================================================
+ARCHITECTURE
+================================================================================
+
+  Browser (http://127.0.0.1:8000)
+  |-- index.html (Jinja2 template)
+  |-- app.js (Leaflet.js, resize, search, measure)
+  |-- style.css (dark theme, flexbox)
+       |
+       | REST API
+       v
+  FastAPI (app/main.py)
+  |-- /api/upload         -> file_handler.load_file()
+  |-- /api/auto-map       -> column_mapper.auto_map_columns()
+  |-- /api/validate-mapping -> validators.*
+  |-- /api/set-config     -> stores config in memory
+  |-- /api/map-data       -> geometry.generate_petal() + earfcn_utils.*
+  |-- /api/generate-kml   -> kml_generator.generate_kml()
+  |-- /api/search         -> searches sites/cities in DataFrame
+  |-- /api/filter-values  -> unique values for filters
+  |-- /api/apply-filters  -> filters DataFrame
+  |-- /api/profiles       -> saves/loads JSON
+       |
+       v
+  cell_kml_generator/ (core module)
+  |-- config.py           -> BAND_COLORS, BAND_RADIUS_M, BAND_BEAMWIDTH, BAND_RANGES
+  |-- file_handler.py     -> load_file() with auto delimiter detection
+  |-- column_mapper.py    -> auto_map_columns() with rapidfuzz (threshold 60)
+  |-- validators.py       -> find_duplicate_coords, find_invalid_azimuth, etc.
+  |-- earfcn_utils.py     -> get_band_info(), calculate_petal_radius(), calculate_beamwidth()
+  |-- geometry.py         -> haversine_distance(), destination_point(), generate_petal()
+  |-- kml_generator.py    -> generate_kml() returns KML bytes
+  |-- label_configurator.py -> LabelConfig dataclass, build_label()
+
+================================================================================
+FILE STRUCTURE
+================================================================================
+C:\MoB_KML_bkp\MoB_KML_Ingles\
+|
+|-- app/                           # Web interface (FastAPI)
+|   |-- __init__.py                # REQUIRED for Nuitka to detect as package
+|   |-- main.py                    # FastAPI server with all endpoints
+|
+|-- cell_kml_generator/            # Core processing module
+|   |-- __init__.py
+|   |-- config.py                  # Constants (colors, radii, beamwidths, EARFCN ranges)
+|   |-- file_handler.py            # CSV/TXT/XLSX reader, auto delimiter detection
+|   |-- column_mapper.py           # Fuzzy column matching (rapidfuzz)
+|   |-- validators.py              # Data validation
+|   |-- earfcn_utils.py            # EARFCN -> Band/Frequency, radius, beamwidth
+|   |-- geometry.py                # Haversine, petals, bearing
+|   |-- kml_generator.py           # KML generation
+|   |-- label_configurator.py      # LabelConfig dataclass
+|   |-- main.py                    # Tkinter GUI (LEGACY - not used in web edition)
+|
+|-- templates/
+|   |-- index.html                 # Main page (Bootstrap 5 + Leaflet.js)
+|
+|-- static/
+|   |-- css/style.css              # Dark theme, flexbox layout, responsive
+|   |-- js/app.js                  # Frontend: map, resize, search, measure, live mode
+|
+|-- profiles/                      # Saved config profiles (.json)
+|   |-- .gitkeep                   # Placeholder for Nuitka to include empty folder
+|
+|-- dist/                          # Compiled executable
+|   |-- MoB_KML.exe                # ~36MB (compressed with zstandard)
+|
+|-- venv/                          # Python 3.9 virtual environment
+|
+|-- run.py                         # LEGACY entry point (Tkinter)
+|-- launcher.py                    # EXE entry point (FastAPI + opens browser)
+|-- build_nuitka.ps1               # Nuitka build script
+|-- requirements.txt               # Dependencies: pandas, openpyxl, rapidfuzz,
+|                                  #   fastapi, uvicorn, jinja2, python-multipart
+|-- mob.ico                        # Application icon
+|-- example_test.csv               # Test data (13 sectors, 6 sites)
+|-- PROJECT_INFO.txt               # This file
+|-- README.md                      # Main documentation
+
+================================================================================
+DEPENDENCIES (requirements.txt)
+================================================================================
+pandas              -> Tabular data manipulation (DataFrame)
+openpyxl            -> Excel .xlsx reading
+rapidfuzz           -> Fuzzy string matching for auto column mapping
+fastapi             -> Web framework (REST API)
+uvicorn             -> ASGI server for FastAPI
+jinja2              -> HTML template engine
+python-multipart    -> File upload support (multipart/form-data)
+
+Transitive dependencies installed automatically:
+  pydantic, starlette, anyio, h11, click, typing-extensions,
+  annotated-types, idna, colorama, markupsafe, exceptiongroup
+
+Build dependencies (not in requirements.txt):
+  nuitka 2.8.10, zstandard, ordered-set
+
+================================================================================
+SUPPORTED BANDS (config.py)
+================================================================================
+Band 28 (700MHz):      EARFCN 9210-9659     Radius 500m   Beamwidth 90
+Band 5 (850MHz):       EARFCN 2410-2649     Radius 700m   Beamwidth 85
+Band 8 (900MHz):       EARFCN 3450-3799     Radius 650m   Beamwidth 80
+Band 3 (1800MHz):      EARFCN 1200-1949     Radius 400m   Beamwidth 65
+Band 1 (2100MHz):      EARFCN 0-599         Radius 350m   Beamwidth 65
+Band 7 (2600 FDD):     EARFCN 2750-3449     Radius 300m   Beamwidth 55
+Band 38 (2600 TDD):    EARFCN 37750-38249   Radius 300m   Beamwidth 55
+Band 40 (2300 TDD):    EARFCN 38650-39649   Radius 320m   Beamwidth 60
+Band 41 (2500 TDD):    EARFCN 39650-41589   Radius 310m   Beamwidth 60
+Band 42 (3500MHz):     EARFCN 41590-43589   Radius 220m   Beamwidth 50
+Band 43 (3700MHz):     EARFCN 43590-45589   Radius 200m   Beamwidth 45
+Band 78 (3500 5G NR):  EARFCN 620000-680000 Radius 220m   Beamwidth 50
+
+================================================================================
+IMPLEMENTED FEATURES
+================================================================================
+[x] Web interface with interactive Leaflet.js map
+[x] TXT, CSV, XLSX file import
+[x] Automatic delimiter detection (comma, semicolon, tab, pipe)
+[x] Automatic column mapping with fuzzy matching (rapidfuzz, threshold 60)
+[x] Data validation (lat/lon, azimuth 0-360, EARFCN, empty labels)
+[x] Duplicate coordinate detection
+[x] EARFCN-based radius calculation (LTE/5G bands)
+[x] Petal (sector) generation with geodesic geometry (Haversine)
+[x] Colors by frequency band (KML AABBGGRR format)
+[x] Configurable labels (size, color, shadow, position, template)
+[x] Live Mode - map auto-updates on every config change
+[x] Resizable panels (drag between config and map)
+[x] Two base maps: OpenStreetMap and Esri Satellite
+[x] Layers per band (toggle on/off in map legend)
+[x] Popups with full information on sector click
+[x] Tooltips with sector name on hover
+[x] Auto-zoom when loading data
+[x] Site and city search in the map search bar
+[x] Regional filters (State, Area Code, Regional, City)
+[x] Distance measurement tool (click-click on map)
+[x] KML export (optional)
+[x] TXT report export
+[x] Save/Load configuration profiles (JSON)
+[x] Standalone .exe compilation with Nuitka
+
+================================================================================
+NUITKA COMPILATION
+================================================================================
+
+IMPORTANT - Issues resolved on 02/03/2026:
+-------------------------------------------------
+1. ERROR "No module named 'app'"
+   Cause: app/ package had no __init__.py and was not in --include-package
+   Solution: Created app/__init__.py + added --include-package=app
+             + --follow-import-to=app in the build script
+
+2. ERROR dynamic import not detected by Nuitka
+   Cause: The launcher used uvicorn.run("app.main:app") as a string
+   Solution: Changed to direct import:
+             from app.main import app as fastapi_app
+             uvicorn.run(fastapi_app, ...)
+
+3. ERROR web dependencies installed in wrong venv
+   Cause: pip installed in the wrong venv (different path)
+   Solution: Use python -m pip (not pip alone) to ensure correct venv
+
+4. ERROR dynamic uvicorn modules not included
+   Cause: uvicorn loads HTTP protocols dynamically
+   Solution: Added --include-package for uvicorn.protocols,
+             uvicorn.lifespan, uvicorn.loops, anyio, starlette, multipart
+
+5. ERROR BOM encoding in launcher.py
+   Cause: PowerShell Out-File adds BOM to UTF-8
+   Solution: Use [System.IO.File]::WriteAllText with UTF8Encoding without BOM
+
+6. ERROR layer control icon clipped by map border-radius
+   Cause: .map-panel with border-radius 14px and overflow hidden
+   Solution: Added 16px margin to .leaflet-control-layers via CSS
+
+Current build command (build_nuitka.ps1):
+-------------------------------------------------
+  python -m nuitka
+    --onefile
+    --standalone
+    --windows-icon-from-ico=mob.ico
+    --windows-console-mode=force          # CHANGE to disable after testing
+    --assume-yes-for-downloads
+    --follow-import-to=fastapi,uvicorn,pydantic,starlette,pandas,
+                       openpyxl,rapidfuzz,cell_kml_generator,app,anyio
+    --include-package=cell_kml_generator,app,
+                      uvicorn.protocols,uvicorn.protocols.http,
+                      uvicorn.lifespan,uvicorn.loops,
+                      anyio,starlette,multipart
+    --include-module=uvicorn.protocols.http.h11_impl,
+                     uvicorn.loops.asyncio,uvicorn.lifespan.on
+    --include-data-dir=templates=templates
+    --include-data-dir=static=static
+    --include-data-dir=profiles=profiles
+    --include-data-files=mob.ico=mob.ico
+    --output-dir=dist
+    --output-filename=MoB_KML.exe
+    launcher.py
+
+Result: dist\MoB_KML.exe (~36MB compressed, ~165MB uncompressed)
+Compilation time: ~10-20 minutes
+C Compiler: cl (Visual Studio Build Tools)
+
+To compile:
+  1. Open PowerShell
+  2. cd C:\MoB_KML_bkp\MoB_KML_Ingles
+  3. .\build_nuitka.ps1
+
+After confirming it works, to hide the console:
+  Edit build_nuitka.ps1: change --windows-console-mode=force
+  to --windows-console-mode=disable and recompile.
+
+================================================================================
+HOW LAUNCHER.PY WORKS
+================================================================================
+launcher.py is the entry point of the compiled executable. It:
+  1. Adds the exe directory to sys.path
+  2. Imports app.main DIRECTLY (from app.main import app as fastapi_app)
+     - This is crucial for Nuitka to detect the dependency
+     - DO NOT use string "app.main:app" as Nuitka doesn't resolve strings
+  3. Starts a thread that opens the browser after 3 seconds
+  4. Starts uvicorn.run(fastapi_app, host="127.0.0.1", port=8000)
+  5. On error, writes traceback to mob_kml_error.log
+
+launcher.py is automatically generated by build_nuitka.ps1 and deleted after
+compilation. If you need to test manually, recreate it with the content above.
+
+================================================================================
+HOW APP/MAIN.PY RESOLVES PATHS
+================================================================================
+APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+  -> Two levels above app/main.py
+  -> In dev: C:\MoB_KML_bkp\MoB_KML_Ingles
+  -> In exe: temporary directory where Nuitka extracts files
+
+PROFILES_DIR = os.path.join(APP_ROOT, "profiles")
+StaticFiles(directory=os.path.join(APP_ROOT, "static"))
+Jinja2Templates(directory=os.path.join(APP_ROOT, "templates"))
+
+This works both in dev and in the exe because Nuitka maintains the
+relative structure of included data files.
+
+================================================================================
+PROCESSING PIPELINE
+================================================================================
+
+CSV/TXT/XLSX File
+    |
+    v
+file_handler.load_file(path)
+    |-- Detects format by file extension
+    |-- For CSV/TXT: tests delimiters (,  ;  \t  |), uses the best one
+    |-- For XLSX: uses openpyxl
+    |-- Returns (DataFrame, meta_dict)
+    |
+    v
+column_mapper.auto_map_columns(df)
+    |-- 3 steps: exact match -> keyword match -> fuzzy match (threshold 60)
+    |-- Maps: latitude, longitude, site_name, cell_name, earfcn, azimuth, beamwidth
+    |-- Returns dict {field: column_name}
+    |
+    v
+validators.find_*()
+    |-- find_duplicate_coords(df, lat_col, lon_col, site_col)
+    |-- find_invalid_azimuth(df, az_col)
+    |-- find_missing_earfcn(df, earfcn_col)
+    |-- find_empty_labels(df, label_col)
+    |-- Returns list of warning strings
+    |
+    v
+earfcn_utils.get_band_info(earfcn)
+    |-- Queries BAND_RANGES in config.py
+    |-- Returns {key, band, label, freq_mhz} or None
+    |
+earfcn_utils.calculate_petal_radius(earfcn, scale, overrides)
+    |-- Base band radius * scale * override (if any)
+    |
+earfcn_utils.calculate_beamwidth(earfcn, overrides)
+    |-- Base band beamwidth or override
+    |
+    v
+geometry.generate_petal(lat, lon, azimuth, beamwidth, radius)
+    |-- Uses haversine to calculate polygon points
+    |-- destination_point() calculates point at distance/bearing from center
+    |-- Returns list of (lat, lon) forming the sector
+    |
+    v
+kml_generator.generate_kml(df, mapping, label_config, ...)
+    |-- Generates KML XML with styles per band
+    |-- Organizes by Site -> Cells
+    |-- Returns KML file bytes
+
+================================================================================
+FRONTEND (static/js/app.js)
+================================================================================
+Main functions:
+  initMap()           -> Creates Leaflet map with OSM + Satellite
+  refreshMap()        -> Fetches /api/map-data and renders polygons per band
+  syncMapSize()       -> Adjusts map size to container
+  clearLayers()       -> Removes all layers and recreates overlay control
+  toggleAutoRefresh() -> Toggles Live Mode on/off
+  initResizeHandle()  -> Implements drag to resize panels
+  setupSearch()       -> Site/city search with 250ms debounce
+  toggleMeasureMode() -> Distance measurement tool
+  addMeasurePoint()   -> Adds measurement point and calculates distance
+  uploadFile()        -> POST /api/upload with FormData
+  autoMap()           -> POST /api/auto-map + activates Live Mode automatically
+  gatherConfig()      -> Collects all config inputs
+  applyConfig()       -> POST /api/set-config
+  buildFilterFields() -> Builds regional filter selects
+  applyFilters()      -> POST /api/apply-filters
+  saveProfile()       -> POST /api/save-profile
+  loadProfile()       -> POST /api/load-profile
+
+================================================================================
+TEST FILE
+================================================================================
+example_test.csv:
+  - 13 sectors across 6 sites
+  - Bands: 700MHz, 1800MHz, 2600MHz, 3500MHz, 5G NR
+  - Operators: VIVO, CLARO, TIM, ALGAR
+  - Columns: site_name, cell_name, latitude, longitude, earfcn, azimuth,
+             beamwidth, operator
+
+Required columns: latitude, longitude
+Recommended columns: earfcn (for automatic band/radius calculation)
+Optional columns: azimuth, beamwidth, site_name, cell_name, and any others
+
+================================================================================
+SUGGESTED NEXT STEPS
+================================================================================
+- Change --windows-console-mode=force to disable and recompile (production)
+- Test on other Windows machines without Python
+- Consider creating MSI installer or setup.exe for distribution
+
+================================================================================
+REDUNDANT DOCUMENTATION FILES (can be deleted)
+================================================================================
+The following files were created during development and contain
+information already consolidated in this PROJECT_INFO.txt and README.md:
+
+  BUILD_IMPLEMENTATION_SUMMARY.txt
+  BUILD_NUITKA_GUIDE.txt
+  BUILD_QUICK_START.txt
+  IMPLEMENTACAO_COMPLETA.txt
+  FUNCIONALIDADES_NOVAS.txt
+  DOCUMENTACAO_FINAL.txt
+  Novas_Funcionalidades.txt
+  CHECKLIST_TESTE.txt
+  GUIA_TESTE_NOVAS_FUNCIONALIDADES.txt
+
+These files can be removed without loss of information.
+
+================================================================================

@@ -43,9 +43,9 @@ BAND_RANGES = [
     {"band": "78", "label": "Band 78 (3500MHz 5G NR)", "min": 620000, "max": 680000, "freq_mhz": 3500, "key": "3500"},
 ]
 
-# Beamwidth (abertura horizontal) por banda - frequências mais baixas = maior cobertura
+# Beamwidth (horizontal aperture) per band - lower frequencies = wider coverage
 BAND_BEAMWIDTH = {
-    "700": 90,    # Frequência mais baixa, maior cobertura
+    "700": 90,    # Lowest frequency, widest coverage
     "850": 85,
     "900": 80,
     "1800": 65,
@@ -53,7 +53,7 @@ BAND_BEAMWIDTH = {
     "2300": 60,
     "2500": 60,
     "2600": 55,
-    "3500": 50,   # Frequência mais alta, menor cobertura
+    "3500": 50,   # Highest frequency, narrowest coverage
     "3700": 45,
 }
 

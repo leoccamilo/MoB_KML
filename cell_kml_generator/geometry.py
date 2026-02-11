@@ -6,14 +6,14 @@ EARTH_RADIUS_M = 6371000.0
 
 def haversine_distance(lat1, lon1, lat2, lon2):
     """
-    Calcula a distância entre dois pontos geográficos usando a fórmula de Haversine.
-    
+    Calculate the distance between two geographic points using the Haversine formula.
+
     Args:
-        lat1, lon1: Latitude e longitude do ponto 1 (em graus)
-        lat2, lon2: Latitude e longitude do ponto 2 (em graus)
-    
+        lat1, lon1: Latitude and longitude of point 1 (in degrees)
+        lat2, lon2: Latitude and longitude of point 2 (in degrees)
+
     Returns:
-        Distância em metros
+        Distance in meters
     """
     lat1_rad = math.radians(lat1)
     lon1_rad = math.radians(lon1)

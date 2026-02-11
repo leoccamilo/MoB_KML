@@ -51,7 +51,7 @@ def _normalize_col(name: str) -> str:
 
 
 def detect_filter_columns(columns: List[str]) -> Dict[str, str]:
-    """Detect columns for common regional filters (UF/Estado, CN/DDD, Regional, Municipio)."""
+    """Detect columns for common regional filters (UF/State, CN/Area Code, Regional, City)."""
     candidates = {
         "uf": ["uf", "estado", "state"],
         "cn": ["cn", "ddd"],
@@ -557,14 +557,14 @@ async def export_report():
 @app.post("/api/calculate-distance")
 async def calculate_distance(payload: Dict[str, Any] = Body(...)):
     """
-    Calcula a distância entre dois pontos geográficos.
-    
+    Calculate the distance between two geographic points.
+
     Payload:
     {
-        "lat1": número,
-        "lon1": número,
-        "lat2": número,
-        "lon2": número
+        "lat1": number,
+        "lon1": number,
+        "lat2": number,
+        "lon2": number
     }
     """
     try:
