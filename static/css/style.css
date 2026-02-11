@@ -701,6 +701,42 @@ body {
   white-space: nowrap;
 }
 
+/* ===== HELP PANEL ===== */
+.help-panel {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.help-section {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.help-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.help-section h5 {
+  color: var(--accent-2);
+  font-size: 0.95rem;
+  margin-bottom: 6px;
+}
+
+.help-section p,
+.help-section li {
+  color: var(--text);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.help-section ul {
+  padding-left: 18px;
+  margin-bottom: 0;
+}
+
 @media (max-width: 1100px) {
   #config-panel {
     flex: 0 0 40%;

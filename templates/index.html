@@ -57,6 +57,9 @@
           <li class="nav-item" role="presentation">
             <button class="nav-link" id="tab-output" data-bs-toggle="pill" data-bs-target="#pane-output" type="button" role="tab">Generate Output</button>
           </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-help" data-bs-toggle="pill" data-bs-target="#pane-help" type="button" role="tab">Help</button>
+          </li>
         </ul>
 
         <div class="sidebar-footer">
@@ -142,7 +145,7 @@
           <div class="tab-pane fade" id="pane-extra" role="tabpanel">
             <div class="panel">
               <h2>Additional Parameters</h2>
-              <p class="text-muted">Select columns to include in petal descriptions.</p>
+              <p class="import-hint">Select columns to include in petal descriptions.</p>
               <div class="row" id="extra-fields"></div>
             </div>
           </div>
@@ -208,7 +211,7 @@
           <div class="tab-pane fade" id="pane-output" role="tabpanel">
             <div class="panel">
               <h2>Generate Output</h2>
-              <p class="text-muted">Generate KML or export the report. Profiles let you reuse mappings and settings.</p>
+              <p class="import-hint">Generate KML or export the report. Profiles let you reuse mappings and settings.</p>
               <div class="d-flex gap-2">
                 <button class="btn btn-success" id="btn-download-kml">Download KML</button>
                 <button class="btn btn-outline-secondary" id="btn-export-report">Export Report</button>
@@ -227,6 +230,59 @@
               </div>
             </div>
           </div>
+
+          <div class="tab-pane fade" id="pane-help" role="tabpanel">
+            <div class="panel help-panel">
+              <h2>How to Use MoB KML</h2>
+
+              <div class="help-section">
+                <h5>1. Import Data</h5>
+                <p>Upload a <strong>TXT</strong>, <strong>CSV</strong>, or <strong>XLSX</strong> file containing your cellular inventory data. The delimiter for TXT files is auto-detected. After uploading, you can preview the data and apply regional filters (state, city, operator, etc.).</p>
+              </div>
+
+              <div class="help-section">
+                <h5>2. Column Mapping</h5>
+                <p>Map the columns from your file to the required fields: <strong>Site Name</strong>, <strong>Latitude</strong>, <strong>Longitude</strong>, <strong>Azimuth</strong>, and <strong>EARFCN</strong> (or Band). Use <em>Auto Map</em> for automatic fuzzy matching, then click <em>Validate</em> to check for issues.</p>
+              </div>
+
+              <div class="help-section">
+                <h5>3. Petal Configuration</h5>
+                <p>Adjust the <strong>Global Scale</strong> to resize all petals on the map. You can also override radius and beamwidth per band in the table below.</p>
+              </div>
+
+              <div class="help-section">
+                <h5>4. Additional Parameters</h5>
+                <p>Select extra columns to include in each petal's description popup (e.g., operator, technology, physical cell ID).</p>
+              </div>
+
+              <div class="help-section">
+                <h5>5. Labels & Visualization</h5>
+                <p>Choose which field to display as the site/cell label on the map. You can customize text scale, color, position, and toggle shadow or hide labels.</p>
+              </div>
+
+              <div class="help-section">
+                <h5>6. Generate Output</h5>
+                <p>Click <strong>Download KML</strong> to export the visualization as a KML file (compatible with Google Earth). Use <strong>Export Report</strong> for a data summary. Save/load <strong>Profiles</strong> to reuse your mappings and settings across sessions.</p>
+              </div>
+
+              <div class="help-section">
+                <h5>Map Tools</h5>
+                <ul>
+                  <li><strong>Measure</strong> - Click two points on the map to measure the distance between them.</li>
+                  <li><strong>Marker</strong> - Place custom markers (pin or simulated site with petals) on the map.</li>
+                  <li><strong>Live</strong> - Toggle automatic map refresh when settings change.</li>
+                  <li><strong>Search</strong> - Search for sites/cells by name or filter by city.</li>
+                  <li><strong>Refresh Map</strong> - Manually reload the map with current settings.</li>
+                </ul>
+              </div>
+
+              <div class="help-section">
+                <h5>Supported Formats</h5>
+                <p>The tool supports LTE and 5G NR inventory data. EARFCN values are automatically converted to band, and each band is rendered with a distinct color on the map.</p>
+              </div>
+            </div>
+          </div>
+
         </div>
         </div>
 
