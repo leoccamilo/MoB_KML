@@ -60,19 +60,37 @@ if __name__ == "__main__":
 
     try:
         # Direct import so Nuitka can trace the dependency
-        from app.main import app as fastapi_app
+        from app import main as app_main
         import uvicorn
 
-        browser_thread = Thread(target=open_browser, daemon=True)
-        browser_thread.start()
-
-        print("Starting MoB_KML server on http://127.0.0.1:8000 ...")
-        uvicorn.run(
+        fastapi_app = app_main.app
+        config = uvicorn.Config(
             fastapi_app,
             host="127.0.0.1",
             port=8000,
             log_level="info"
         )
+        server = uvicorn.Server(config)
+
+        def auto_shutdown_watchdog():
+            idle_seconds = 90.0
+            while not server.should_exit:
+                time.sleep(5)
+                try:
+                    if app_main.should_auto_shutdown(idle_seconds=idle_seconds):
+                        server.should_exit = True
+                        break
+                except Exception as watchdog_error:
+                    print(f"Auto-shutdown watchdog error: {watchdog_error}")
+
+        browser_thread = Thread(target=open_browser, daemon=True)
+        browser_thread.start()
+
+        watchdog_thread = Thread(target=auto_shutdown_watchdog, daemon=True)
+        watchdog_thread.start()
+
+        print("Starting MoB_KML server on http://127.0.0.1:8000 ...")
+        server.run()
     except KeyboardInterrupt:
         print("\nServer stopped.")
         sys.exit(0)
@@ -82,7 +100,6 @@ if __name__ == "__main__":
         with open(err_path, "w", encoding="utf-8") as f:
             traceback.print_exc(file=f)
         traceback.print_exc()
-        input("Press Enter to exit...")
         sys.exit(1)
 "@
 # Use .NET to write without BOM
@@ -110,7 +127,7 @@ python -m nuitka `
     --onefile `
     --standalone `
     --windows-icon-from-ico=mob.ico `
-    --windows-console-mode=force `
+    --windows-console-mode=disable `
     --assume-yes-for-downloads `
     --follow-import-to=fastapi `
     --follow-import-to=uvicorn `
@@ -158,9 +175,8 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "  - Start the FastAPI server on http://127.0.0.1:8000" -ForegroundColor White
     Write-Host "  - Automatically open in your default browser" -ForegroundColor White
     Write-Host "  - Display the MoB_KML interface" -ForegroundColor White
-    Write-Host "`nNOTE: Console window is visible for debugging." -ForegroundColor Yellow
-    Write-Host "After confirming it works, change --windows-console-mode=force" -ForegroundColor Yellow
-    Write-Host "to --windows-console-mode=disable in build_nuitka.ps1" -ForegroundColor Yellow
+    Write-Host "`nNOTE: Console window is hidden by default (--windows-console-mode=disable)." -ForegroundColor Yellow
+    Write-Host "If you need terminal logs for debugging, temporarily change it to force." -ForegroundColor Yellow
 
     # Optional: Create a desktop shortcut
     Write-Host "`nCreating desktop shortcut..." -ForegroundColor Yellow

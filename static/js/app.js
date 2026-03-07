@@ -39,8 +39,98 @@ const state = {
   filterSelections: {},
 };
 
+let appSessionId = null;
+let sessionPingTimer = null;
+const SESSION_PING_INTERVAL_MS = 15000;
+
 function setStatus(text) {
   document.getElementById("status-text").textContent = text;
+}
+
+function generateSessionId() {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") {
+    return window.crypto.randomUUID();
+  }
+  return `sess-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+async function openAppSession() {
+  if (!appSessionId) {
+    appSessionId = generateSessionId();
+  }
+  try {
+    const res = await fetch("/api/session/open", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: appSessionId }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      appSessionId = data.session_id || appSessionId;
+    }
+  } catch (error) {
+    console.warn("Session open failed:", error);
+  }
+}
+
+async function pingAppSession() {
+  if (!appSessionId) return;
+  try {
+    await fetch("/api/session/ping", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: appSessionId }),
+      keepalive: true,
+    });
+  } catch (_) {
+    // Ignore transient failures
+  }
+}
+
+function closeAppSession() {
+  if (!appSessionId) return;
+  const payload = JSON.stringify({ session_id: appSessionId });
+  const blob = new Blob([payload], { type: "application/json" });
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon("/api/session/close", blob);
+  } else {
+    fetch("/api/session/close", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+      keepalive: true,
+    }).catch(() => {});
+  }
+}
+
+function setupSessionLifecycle() {
+  openAppSession().then(() => {
+    pingAppSession();
+  });
+
+  sessionPingTimer = window.setInterval(() => {
+    pingAppSession();
+  }, SESSION_PING_INTERVAL_MS);
+
+  window.addEventListener("pagehide", closeAppSession);
+  window.addEventListener("beforeunload", closeAppSession);
+}
+
+function setUploadInlineStatus(text, kind = "muted", busy = false) {
+  const el = document.getElementById("upload-inline-status");
+  if (!el) return;
+
+  el.hidden = !text;
+  el.textContent = text || "";
+  el.classList.remove("is-busy", "is-error", "is-success");
+
+  if (busy) {
+    el.classList.add("is-busy");
+  } else if (kind === "error") {
+    el.classList.add("is-error");
+  } else if (kind === "success") {
+    el.classList.add("is-success");
+  }
 }
 
 function renderPreview(preview) {
@@ -542,29 +632,55 @@ function selectSearchResult(cellName, siteName, lat, lon, kind) {
 
 async function uploadFile() {
   const fileInput = document.getElementById("file-input");
-  if (!fileInput.files.length) return;
-  const formData = new FormData();
-  formData.append("file", fileInput.files[0]);
+  const browseBtn = document.getElementById("btn-browse");
+  const uploadBtn = document.getElementById("btn-upload");
 
-  setStatus("Uploading...");
-  const res = await fetch("/api/upload", { method: "POST", body: formData });
-  const data = await res.json();
-  if (!res.ok) {
-    setStatus("Upload error");
+  if (!fileInput.files.length) {
+    setUploadInlineStatus("Select a file first", "error");
     return;
   }
 
-  state.columns = data.columns;
-  state.filterColumns = data.filter_columns || {};
-  renderPreview(data.preview);
-  document.getElementById("row-count").textContent = data.total_rows;
-  document.getElementById("source-name").textContent = data.source_name || "-";
+  uploadBtn.disabled = true;
+  browseBtn.disabled = true;
+  fileInput.disabled = true;
 
-  buildMappingUI(state.columns);
-  buildExtraFields(state.columns);
-  buildLabelSelectors(state.columns);
-  await buildFilterFields(state.filterColumns);
-  setStatus("Data loaded");
+  const formData = new FormData();
+  formData.append("file", fileInput.files[0]);
+
+  try {
+    setStatus("Uploading...");
+    setUploadInlineStatus("Uploading...", "muted", true);
+
+    const res = await fetch("/api/upload", { method: "POST", body: formData });
+    const data = await res.json();
+    if (!res.ok) {
+      const errorMsg = data?.detail || "Upload error";
+      setStatus("Upload error");
+      setUploadInlineStatus(errorMsg, "error");
+      return;
+    }
+
+    state.columns = data.columns;
+    state.filterColumns = data.filter_columns || {};
+    renderPreview(data.preview);
+    document.getElementById("row-count").textContent = data.total_rows;
+    document.getElementById("source-name").textContent = data.source_name || "-";
+
+    buildMappingUI(state.columns);
+    buildExtraFields(state.columns);
+    buildLabelSelectors(state.columns);
+    await buildFilterFields(state.filterColumns);
+    setStatus("Data loaded");
+    setUploadInlineStatus("Upload complete", "success");
+  } catch (error) {
+    console.error("Upload error:", error);
+    setStatus("Upload error");
+    setUploadInlineStatus("Upload failed", "error");
+  } finally {
+    uploadBtn.disabled = false;
+    browseBtn.disabled = false;
+    fileInput.disabled = false;
+  }
 }
 
 async function autoMap() {
@@ -921,6 +1037,7 @@ function toggleAutoRefresh() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  setupSessionLifecycle();
   initMap();
   wireEvents();
   await loadBands();

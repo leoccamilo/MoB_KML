@@ -7,7 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/style.css?v=20260307b" />
 </head>
 <body>
   <div class="app-shell">
@@ -81,7 +81,10 @@
                 <button class="btn btn-outline-light btn-sm" id="btn-browse" type="button">Browse...</button>
                 <span class="file-name" id="file-name-display">No file selected</span>
               </div>
-              <button class="btn btn-primary mt-3" id="btn-upload">Upload</button>
+              <div class="upload-actions mt-3">
+                <button class="btn btn-primary" id="btn-upload">Upload</button>
+                <span class="upload-inline-status" id="upload-inline-status" hidden>Uploading...</span>
+              </div>
 
               <div class="filter-block mt-4">
                 <div class="d-flex justify-content-between align-items-center">
@@ -373,8 +376,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v=20260307b"></script>
 </body>
 </html>
-
-

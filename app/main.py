@@ -4,6 +4,9 @@ import datetime
 import json
 import os
 import tempfile
+import threading
+import time
+import uuid
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -37,6 +40,51 @@ CURRENT: Dict[str, Any] = {
     "source_name": "",
     "filter_columns": {},
 }
+
+SESSION_TTL_SECONDS = 45.0
+DEFAULT_IDLE_SHUTDOWN_SECONDS = 90.0
+RUNTIME_LOCK = threading.Lock()
+RUNTIME: Dict[str, Any] = {
+    "sessions": {},
+    "last_activity": time.time(),
+}
+
+
+def _touch_activity() -> None:
+    with RUNTIME_LOCK:
+        RUNTIME["last_activity"] = time.time()
+
+
+def _cleanup_expired_sessions(now_ts: Optional[float] = None) -> None:
+    now_ts = now_ts or time.time()
+    cutoff = now_ts - SESSION_TTL_SECONDS
+    with RUNTIME_LOCK:
+        sessions = RUNTIME.get("sessions", {})
+        expired = [sid for sid, ts in sessions.items() if ts < cutoff]
+        for sid in expired:
+            sessions.pop(sid, None)
+
+
+def should_auto_shutdown(idle_seconds: float = DEFAULT_IDLE_SHUTDOWN_SECONDS) -> bool:
+    """
+    Return True when there are no active browser sessions and the app has been idle
+    for at least `idle_seconds`. Intended for launcher process supervision.
+    """
+    now_ts = time.time()
+    _cleanup_expired_sessions(now_ts)
+    with RUNTIME_LOCK:
+        sessions = RUNTIME.get("sessions", {})
+        last_activity = float(RUNTIME.get("last_activity", now_ts))
+        return len(sessions) == 0 and (now_ts - last_activity) >= idle_seconds
+
+
+@app.middleware("http")
+async def activity_middleware(request: Request, call_next):
+    # Track activity only for API calls (not static assets)
+    if request.url.path.startswith("/api/"):
+        _touch_activity()
+    response = await call_next(request)
+    return response
 
 
 def _require_df() -> pd.DataFrame:
@@ -145,6 +193,38 @@ async def get_bands():
             }
         )
     return {"bands": bands}
+
+
+@app.post("/api/session/open")
+async def session_open(payload: Dict[str, Any] = Body(default={})):
+    session_id = str(payload.get("session_id", "")).strip() or uuid.uuid4().hex
+    now_ts = time.time()
+    with RUNTIME_LOCK:
+        RUNTIME["sessions"][session_id] = now_ts
+        RUNTIME["last_activity"] = now_ts
+    return {"session_id": session_id, "ok": True}
+
+
+@app.post("/api/session/ping")
+async def session_ping(payload: Dict[str, Any] = Body(default={})):
+    session_id = str(payload.get("session_id", "")).strip()
+    if not session_id:
+        return JSONResponse(status_code=400, content={"ok": False, "detail": "session_id is required"})
+    now_ts = time.time()
+    with RUNTIME_LOCK:
+        RUNTIME["sessions"][session_id] = now_ts
+        RUNTIME["last_activity"] = now_ts
+    return {"ok": True}
+
+
+@app.post("/api/session/close")
+async def session_close(payload: Dict[str, Any] = Body(default={})):
+    session_id = str(payload.get("session_id", "")).strip()
+    with RUNTIME_LOCK:
+        if session_id:
+            RUNTIME["sessions"].pop(session_id, None)
+        RUNTIME["last_activity"] = time.time()
+    return {"ok": True}
 
 
 @app.post("/api/upload")
