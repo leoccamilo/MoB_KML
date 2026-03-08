@@ -50,8 +50,17 @@ def open_browser():
     time.sleep(3)
     try:
         webbrowser.open('http://127.0.0.1:8000')
-    except Exception as e:
-        print(f"Could not open browser: {e}")
+    except Exception:
+        pass
+
+def shutdown_watchdog(should_auto_shutdown_fn, interval=10):
+    while True:
+        time.sleep(interval)
+        try:
+            if should_auto_shutdown_fn():
+                os._exit(0)
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     app_dir = os.path.dirname(os.path.abspath(__file__))
@@ -60,47 +69,25 @@ if __name__ == "__main__":
 
     try:
         # Direct import so Nuitka can trace the dependency
-        from app import main as app_main
+        from app.main import app as fastapi_app, should_auto_shutdown
         import uvicorn
 
-        fastapi_app = app_main.app
-        config = uvicorn.Config(
-            fastapi_app,
-            host="127.0.0.1",
-            port=8000,
-            log_level="info"
-        )
-        server = uvicorn.Server(config)
+        Thread(target=open_browser, daemon=True).start()
+        Thread(target=shutdown_watchdog, args=(should_auto_shutdown,), daemon=True).start()
 
-        def auto_shutdown_watchdog():
-            idle_seconds = 90.0
-            while not server.should_exit:
-                time.sleep(5)
-                try:
-                    if app_main.should_auto_shutdown(idle_seconds=idle_seconds):
-                        server.should_exit = True
-                        break
-                except Exception as watchdog_error:
-                    print(f"Auto-shutdown watchdog error: {watchdog_error}")
+        uvicorn.run(fastapi_app, host="127.0.0.1", port=8000, log_config=None)
 
-        browser_thread = Thread(target=open_browser, daemon=True)
-        browser_thread.start()
-
-        watchdog_thread = Thread(target=auto_shutdown_watchdog, daemon=True)
-        watchdog_thread.start()
-
-        print("Starting MoB_KML server on http://127.0.0.1:8000 ...")
-        server.run()
     except KeyboardInterrupt:
-        print("\nServer stopped.")
-        sys.exit(0)
-    except Exception as e:
-        # Write error to file next to exe for debugging
-        err_path = os.path.join(app_dir, "mob_kml_error.log")
-        with open(err_path, "w", encoding="utf-8") as f:
-            traceback.print_exc(file=f)
-        traceback.print_exc()
-        sys.exit(1)
+        os._exit(0)
+    except Exception:
+        try:
+            exe_dir = os.path.dirname(sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__))
+            err_path = os.path.join(exe_dir, "mob_kml_error.log")
+            with open(err_path, "w", encoding="utf-8") as f:
+                traceback.print_exc(file=f)
+        except Exception:
+            pass
+        os._exit(1)
 "@
 # Use .NET to write without BOM
 [System.IO.File]::WriteAllText(
